@@ -112,13 +112,13 @@ impl Decode {
                 run -= 1;
             } else {
                 let chunk = self.next_chunk()?;
-                if let RUN(r) = chunk {
-                    run = r;
-                } else {
-                    curr = self.next_px(chunk, curr)?;
-                }
+                match chunk {
+                    RUN(r) => { run = r; },
+                    _ => curr = self.next_px(chunk, curr)?,
+                };
                 self.index[hash(curr)] = curr;
             }
+
             bytes.push(curr);
 
         }
