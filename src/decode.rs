@@ -1,134 +1,60 @@
 use std::fs::File;
 use std::io::{ Read, Result, Error, ErrorKind };
+use std::num::Wrapping as wr;
 
 use super::hash;
 use super::Pix;
+use super::ChunkIterator;
 use super::Chunk;
 use super::Chunk::*;
 use super::qoi::QoiHeader;
 
-const QOI_OP_RGB: u8    = 0b11111110;
-const QOI_OP_RGBA: u8   = 0b11111111;
-const QOI_OP_INDEX: u8  = 0b00000000;
-const QOI_OP_DIFF: u8   = 0b01000000;
-const QOI_OP_LUMA: u8   = 0b10000000;
-const QOI_OP_RUN: u8    = 0b11000000;
+pub fn decode(f: &mut File, width: u32, height: u32) -> Result<Vec<u8>> {
+    let num_bytes = (width*height) as usize * 4;
 
-const QOI_MASK_2: u8    = 0b11000000;
+    let mut bytes: Vec<u8> = Vec::with_capacity(num_bytes);
+        
+    let mut curr = (0u8, 0u8, 0u8, 255u8);
+    let mut index = [(0u8, 0u8, 0u8, 0u8); 64];
 
-pub struct Decode {
-    header: QoiHeader,
-    index: [(u8, u8, u8, u8); 64],
-    f: File,
-}
+    let iter = f.bytes()
+        .map(|b| b.unwrap());
+    let chunks = ChunkIterator::new(iter);
 
-pub struct DecodeOutput {
-    pub width: u32,
-    pub height: u32, 
-    pub bytes: Vec<Pix>,
-}
-
-impl Decode {
-    pub fn new(header: QoiHeader, f: File) -> Decode {
-        let index = [(0u8, 0u8, 0u8, 0u8); 64];
-        Decode {
-            header,
-            index,
-            f,
-        }
-    }
-    fn next_chunk(&mut self) -> Result<Chunk> {
-        let mut buf: [u8; 4] = [0u8; 4];
-        self.f.read(&mut buf[0..1])?;
-        match buf[0] {
-            QOI_OP_RGB => {
-                self.f.read(&mut buf[0..3])?;
-                Ok(RGB(buf[0], buf[1], buf[2]))
-            },
-            QOI_OP_RGBA => {
-                self.f.read(&mut buf[0..4])?;
-                Ok(RGBA(buf[0], buf[1], buf[2], buf[3]))
-            },
-            b => match b & QOI_MASK_2 {
-                QOI_OP_INDEX => Ok(INDEX(b)),
-                QOI_OP_DIFF => Ok(DIFF((b >> 4) & 3, (b >> 2) & 3, b & 3)),
-                QOI_OP_LUMA => {
-                    self.f.read(&mut buf[0..1])?;
-                    Ok(LUMA(
-                        b & 0b00111111,
-                        buf[0] & 0b11110000 >> 4,
-                        buf[0] & 0b00001111, 
-                    ))
-                },
-                QOI_OP_RUN => Ok(RUN(b & 0b00111111)),
-                _ => Err(Error::new(ErrorKind::Other, "Invalid Chunk detected"))
-            }
-        }
-    }
-
-    fn next_px(&mut self, chunk: Chunk, curr: Pix) -> Result<Pix> {
-        Ok(match chunk {
-            RGB(r, g, b) => (r, g, b, 255),
-            RGBA(r, g, b, a) => (r, g, b, a),
-            INDEX(i) => self.index[i as usize],
-            DIFF(dr, dg, db) => {
-                let (r, g, b, a) = curr;
-                let r = ((r as i32) + (dr as i32) - 2) % 255;
-                let g = ((g as i32) + (dg as i32) - 2) % 255;
-                let b = ((b as i32) + (db as i32) - 2) % 255;
-                let r = r as u8;
-                let g = g as u8;
-                let b = b as u8;
-                (r, g, b, a)
-            },
+    let mut i = 0;
+    for chunk in chunks {
+        match chunk {
+            RGB(r, g, b) => curr = (r, g, b, 255),
+            RGBA(r, g, b, a) => curr = (r, g, b, a), 
+            INDEX(i) => curr = index[i as usize], 
+            DIFF(dr, dg, db) => curr = (
+                (wr(curr.0) + wr(dr) - wr(2)).0,
+                (wr(curr.1) + wr(dg) - wr(2)).0,
+                (wr(curr.2) + wr(db) - wr(2)).0,
+                curr.3,
+            ),
             LUMA(dg, drdg, dbdg) => {
-                let (r, g, b, a) = curr;
-                let vg = (dg as i32) - 32;
-                let r = ((r as i32) + vg + (drdg as i32) - 8) % 255;
-                let g = ((g as i32) + vg) % 255;
-                let b = ((b as i32) + vg + (dbdg as i32) - 8) % 255;
-                let r = r as u8;
-                let g = g as u8;
-                let b = b as u8;
-                (r, g, b, a)
-            }
-            _ => curr, 
-        })
+                let vg = wr(dg) - wr(32);
+                curr = (
+                    (wr(curr.0) + vg - wr(8) + wr(drdg)).0,
+                    (wr(curr.1) + vg).0,
+                    (wr(curr.2) + vg - wr(8) + wr(dbdg)).0,
+                    curr.3,
+                );
+            },
+            RUN(r) => for _ in 1..=r {
+                bytes.push(curr.3);
+                bytes.push(curr.2);
+                bytes.push(curr.1);
+                bytes.push(curr.0);
+            },
+        };
+        index[hash(curr)] = curr;
+        bytes.push(curr.3);
+        bytes.push(curr.2);
+        bytes.push(curr.1);
+        bytes.push(curr.0);
     }
 
-    pub fn go(&mut self) -> Result<DecodeOutput> {
-        let width = self.header.width;
-        let height = self.header.height;
-        let num_chunks = width*height;
-
-        let mut bytes: Vec<Pix> = Vec::with_capacity(num_chunks as usize);
-            
-        let mut run = 0;
-        let mut curr = (0u8, 0u8, 0u8, 255u8);
-        for _i in 0..num_chunks {
-
-
-            if run > 0 {
-                run -= 1;
-            } else {
-                let chunk = self.next_chunk()?;
-                match chunk {
-                    RUN(r) => { run = r; },
-                    _ => curr = self.next_px(chunk, curr)?,
-                };
-                self.index[hash(curr)] = curr;
-            }
-
-            bytes.push(curr);
-
-        }
-        println!("Length: {}", bytes.len());
-        Ok(DecodeOutput {
-            width,
-            height,
-            bytes,
-        })
-    }
-
-    pub fn debug(&mut self) {}
+    Ok(bytes)
 }
