@@ -21,11 +21,13 @@ pub struct Decode {
     index: [(u8, u8, u8, u8); 64],
     f: File,
 }
+
 pub struct DecodeOutput {
     pub width: u32,
     pub height: u32, 
     pub bytes: Vec<Pix>,
 }
+
 impl Decode {
     pub fn new(header: QoiHeader, f: File) -> Decode {
         let index = [(0u8, 0u8, 0u8, 0u8); 64];
@@ -49,7 +51,7 @@ impl Decode {
             },
             b => match b & QOI_MASK_2 {
                 QOI_OP_INDEX => Ok(INDEX(b)),
-                OOI_OP_DIFF => Ok(DIFF((b >> 4) & 3, (b >> 2) & 3, b & 3)),
+                QOI_OP_DIFF => Ok(DIFF((b >> 4) & 3, (b >> 2) & 3, b & 3)),
                 QOI_OP_LUMA => {
                     self.f.read(&mut buf[0..1])?;
                     Ok(LUMA(
@@ -104,6 +106,7 @@ impl Decode {
         let mut curr = (0u8, 0u8, 0u8, 255u8);
         for _i in 0..num_chunks {
 
+
             if run > 0 {
                 run -= 1;
             } else {
@@ -113,16 +116,19 @@ impl Decode {
                 } else {
                     curr = self.next_px(chunk, curr)?;
                 }
-
                 self.index[hash(curr)] = curr;
             }
-
             bytes.push(curr);
+
+
         }
+        println!("Length: {}", bytes.len());
         Ok(DecodeOutput {
             width,
             height,
             bytes,
         })
     }
+
+    pub fn debug(&mut self) {}
 }

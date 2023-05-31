@@ -5,14 +5,12 @@ use std::io::Read;
 use quite_ok_image::qoi::QoiHeader;
 use quite_ok_image::decode::Decode;
 use quite_ok_image::decode::DecodeOutput;
-use quite_ok_image::Pix;
 
 use sdl2::{
     event::Event,
     keyboard::Keycode,
-    pixels::{ Color, PixelFormatEnum::RGBA8888 },
+    pixels::{ PixelFormatEnum::RGBA8888 },
     surface::Surface,
-    render,
 };
 use std::time::Duration;
 
@@ -39,7 +37,7 @@ fn main() {
 
     let decode_output = decode.go().unwrap();
 
-    sdl(decode_output);
+    sdl(decode_output).unwrap();
 }
 
 fn sdl(decode_output: DecodeOutput) -> Result<(), String> {
@@ -73,7 +71,7 @@ fn sdl(decode_output: DecodeOutput) -> Result<(), String> {
     let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
     let texture_creator = canvas.texture_creator();
 
-    let mut texture = surface.as_texture(&texture_creator).unwrap();
+    let texture = surface.as_texture(&texture_creator).unwrap();
 
 
     canvas.copy(
