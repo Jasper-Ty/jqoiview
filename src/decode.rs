@@ -83,9 +83,10 @@ impl Decode {
             },
             LUMA(dg, drdg, dbdg) => {
                 let (r, g, b, a) = curr;
-                let r = ((r as i32) + (dg as i32) + (drdg as i32) - 8) % 255;
-                let g = ((g as i32) + (dg as i32)) % 255;
-                let b = ((b as i32) + (dg as i32) + (dbdg as i32) - 8) % 255;
+                let vg = (dg as i32) - 32;
+                let r = ((r as i32) + vg + (drdg as i32) - 8) % 255;
+                let g = ((g as i32) + vg) % 255;
+                let b = ((b as i32) + vg + (dbdg as i32) - 8) % 255;
                 let r = r as u8;
                 let g = g as u8;
                 let b = b as u8;
@@ -119,7 +120,6 @@ impl Decode {
                 self.index[hash(curr)] = curr;
             }
             bytes.push(curr);
-
 
         }
         println!("Length: {}", bytes.len());
