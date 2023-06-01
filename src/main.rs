@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::Read;
 
 use quite_ok_image::qoi::QoiHeader;
-use quite_ok_image::decode::decode;
+use quite_ok_image::decode::{decode, decode_debug};
 
 use sdl2::{
     event::Event,
@@ -30,12 +30,36 @@ fn main() {
 
     let header = QoiHeader::from_file(&mut f)
         .expect("Should be able to read header");
+
+    let width = header.width;
+    let height = header.height;
     
     println!("{:?}", header);
-    let mut bytes = decode(&mut f, header.width, header.height);
+    let mut bytes = decode(&mut f, width, height).unwrap();
+    println!("output size: {}", bytes.len());
+
+    let mut debug = decode_debug(&mut f, width, height).unwrap();
+
+    let surface = Surface::from_data(
+        &mut bytes,
+        width, 
+        height, 
+        width*4,
+        RGBA8888
+    ).unwrap();
+
+    let surface_debug = Surface::from_data(
+        &mut debug,
+        width, 
+        height, 
+        width*4,
+        RGBA8888
+    ).unwrap();
+    sdl(surface, surface_debug).unwrap();
 }
 
-fn sdl() -> Result<(), String> {
+
+fn sdl(surface: Surface, surface2: Surface) -> Result<(), String> {
     
     let sdl_context = sdl2::init().map_err(|e| e.to_string())?;
     let video_subsystem = sdl_context.video()?;
@@ -47,8 +71,36 @@ fn sdl() -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
 
-    let mut event_pump = sdl_context.event_pump()?;
+    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    let texture_creator = canvas.texture_creator();
+    let texture = surface.as_texture(&texture_creator).unwrap();
 
+    let window_2 = video_subsystem
+        .window("Jasper's QOI Image Viewer", 800, 600)
+        .position_centered()
+        .opengl()
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut canvas_2 = window_2.into_canvas().build().map_err(|e| e.to_string())?;
+    let texture_creator_2 = canvas_2.texture_creator();
+    let texture_2 = surface2.as_texture(&texture_creator_2).unwrap();
+
+    canvas.copy(
+        &texture,
+        None,
+        None,
+    )?;
+    canvas.present();
+
+    canvas_2.copy(
+        &texture_2,
+        None,
+        None,
+    )?;
+    canvas_2.present();
+
+    let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -60,6 +112,18 @@ fn sdl() -> Result<(), String> {
                 _ => {}
             }
         }
+        canvas.copy(
+            &texture,
+            None,
+            None,
+        )?;
+        canvas.present();
+        canvas_2.copy(
+            &texture_2,
+            None,
+            None,
+        )?;
+    canvas_2.present();
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
     Ok(())
