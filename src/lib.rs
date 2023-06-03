@@ -22,6 +22,7 @@ const QOI_OP_RUN: u8    = 0b11000000;
 
 const QOI_MASK_2: u8    = 0b11000000;
 
+#[derive(Debug)]
 pub enum Chunk {
     RGB(u8, u8, u8),
     RGBA(u8, u8, u8, u8),
@@ -32,34 +33,48 @@ pub enum Chunk {
 }
 
 use Chunk::*;
-pub struct ChunkIterator<T: Iterator<Item=u8>> {
-    iter: T,
-}
-impl<T> ChunkIterator<T> 
+
+pub struct ChunkIter<I> 
 where
-    T: Iterator<Item=u8>
+    I: Iterator<Item = u8>
 {
-    pub fn new(iter: T) -> Self {
-        ChunkIterator { iter }
+    iter: I,
+}
+
+impl<I> ChunkIter<I> 
+where
+    I: Iterator<Item = u8>
+{
+    pub fn new(iter: I) -> Self {
+        Self{ iter }
     }
 }
-impl<T> Iterator for ChunkIterator<T>
+
+impl<I> Iterator for ChunkIter<I> 
 where
-    T: Iterator<Item=u8>
+    I: Iterator<Item = u8>
 {
     type Item = Chunk;
 
     fn next(&mut self) -> Option<Chunk> {
-        let b = &mut self.iter;
-        let b1 = b.next()?;
+        let b1 = self.iter.next()?;
         match b1 {
-            QOI_OP_RGB => Some(RGB(b.next()?, b.next()?, b.next()?)),
-            QOI_OP_RGBA => Some(RGBA(b.next()?, b.next()?, b.next()?, b.next()?)),
+            QOI_OP_RGB => Some(RGB(
+                self.iter.next()?, 
+                self.iter.next()?, 
+                self.iter.next()?,
+            )),
+            QOI_OP_RGBA => Some(RGBA(
+                self.iter.next()?, 
+                self.iter.next()?, 
+                self.iter.next()?, 
+                self.iter.next()?,
+            )),
             b1 => match b1 & QOI_MASK_2 {
                 QOI_OP_INDEX => Some(INDEX(b1)),
                 QOI_OP_DIFF => Some(DIFF((b1 >> 4) & 0x03, (b1 >> 2) & 0x03, b1 & 0x03)),
                 QOI_OP_LUMA => {
-                    let b2 = b.next()?;
+                    let b2 = self.iter.next()?;
                     Some(LUMA(
                         b1 & 0b00111111,
                         b2 & 0b11110000 >> 4,
@@ -72,4 +87,16 @@ where
         }
     }
 }
-
+pub trait BytesToChunks {
+    fn chunks(self) -> ChunkIter<Self> 
+    where
+        Self: Sized + Iterator<Item = u8>;
+}
+impl<I> BytesToChunks for I 
+where
+    I: Iterator<Item = u8>
+{
+    fn chunks(self) -> ChunkIter<Self> {
+        ChunkIter::new(self)
+    }
+}

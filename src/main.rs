@@ -1,9 +1,15 @@
 use std::env;
 use std::fs::File;
-use std::io::Read;
+use std::io::{ BufReader, Read, Seek, SeekFrom };
 
 use quite_ok_image::qoi::QoiHeader;
-use quite_ok_image::decode::{decode, decode_debug};
+use quite_ok_image::decode::Decoder;
+use quite_ok_image::ChunkIter;
+use quite_ok_image::Chunk::*;
+use quite_ok_image::hash;
+use quite_ok_image::BytesToChunks;
+
+use std::num::Wrapping as wr;
 
 use sdl2::{
     event::Event,
@@ -12,6 +18,8 @@ use sdl2::{
     surface::Surface,
 };
 use std::time::Duration;
+
+const SKIP: usize = 400;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -35,31 +43,26 @@ fn main() {
     let height = header.height;
     
     println!("{:?}", header);
-    let mut bytes = decode(&mut f, width, height).unwrap();
-    println!("output size: {}", bytes.len());
 
-    let mut debug = decode_debug(&mut f, width, height).unwrap();
+    let metadata = f.metadata().unwrap();
+    let chunks_len = metadata.len() - 22;
+    f.seek(SeekFrom::Start(14)).unwrap();
 
-    let surface = Surface::from_data(
-        &mut bytes,
-        width, 
-        height, 
-        width*4,
-        RGBA8888
-    ).unwrap();
+    let metadata = f.metadata().unwrap();
+    let chunks_len = metadata.len() - 22;
+    f.seek(SeekFrom::Start(14)).unwrap();
 
-    let surface_debug = Surface::from_data(
-        &mut debug,
-        width, 
-        height, 
-        width*4,
-        RGBA8888
-    ).unwrap();
-    sdl(surface, surface_debug).unwrap();
+    let chunks = BufReader::new(f)
+        .take(chunks_len)
+        .bytes()
+        .map(|b| b.unwrap())
+        .chunks();
+
+
 }
 
 
-fn sdl(surface: Surface, surface2: Surface) -> Result<(), String> {
+fn sdl(surface: &mut Surface, surface2: Surface) -> Result<(), String> {
     
     let sdl_context = sdl2::init().map_err(|e| e.to_string())?;
     let video_subsystem = sdl_context.video()?;
@@ -109,6 +112,14 @@ fn sdl(surface: Surface, surface2: Surface) -> Result<(), String> {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Return),
+                    ..
+                } => { 
+                    surface.with_lock_mut(|v| {
+                        println!("TRAPPED IN DA SURFACE: {}", v.len())
+                    });
+                }
                 _ => {}
             }
         }
@@ -128,4 +139,3 @@ fn sdl(surface: Surface, surface2: Surface) -> Result<(), String> {
     }
     Ok(())
 }
-
