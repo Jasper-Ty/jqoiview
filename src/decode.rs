@@ -13,6 +13,8 @@ where
     iter: I,
     curr: Pix,
     index: [Pix; 64],
+    pixels: Vec<Pix>,
+    top: usize,
 }
 impl<I> Decoder<I>
 where
@@ -21,61 +23,83 @@ where
     pub fn new(iter: I) -> Self {
         let curr = (0, 0, 0, 255);
         let index = [(0, 0, 0, 0); 64];
+        let pixels = Vec::new();
+        let top = 0;
 
         Self {
             iter,
             curr,
             index,
+            pixels,
+            top,
         }
     }
 
-    pub fn decode_step<F: FnOnce(&[Pix]) -> ()> (&mut self, f: F) {
-        let mut pixels: Vec<Pix> = vec![];
+    fn decode_next_chunk(&mut self) -> Option<Chunk> {
         if let Some(chunk) = self.iter.next() {
-            println!("{:?}", chunk);
             self.curr = match chunk {
                 RGB(r, g, b) => (r, g, b, 255),
-                RGBA(r, g, b, a) => (r, g, b, a), 
-                INDEX(i) => self.index[i as usize], 
+                RGBA(r, g, b, a) =>(r, g, b, a), 
+                INDEX(i) => self.index[i as usize],
                 DIFF(dr, dg, db) => (
-                    self.curr.0.wrapping_add(dr).wrapping_sub(2),
-                    self.curr.1.wrapping_add(dg).wrapping_sub(2),
-                    self.curr.2.wrapping_add(db).wrapping_sub(2),
+                    self.curr.0
+                        .wrapping_add(dr)
+                        .wrapping_sub(2),
+                    self.curr.1
+                        .wrapping_add(dg)
+                        .wrapping_sub(2),
+                    self.curr.2
+                        .wrapping_add(db)
+                        .wrapping_sub(2),
                     self.curr.3,
                 ),
-                LUMA(dg, drdg, dbdg) => {
-                    let vg = wr(dg) - wr(32);
-                    (
-                        (wr(self.curr.0) + vg - wr(8) + wr(drdg)).0,
-
-                        (wr(self.curr.1) + vg).0,
-                        (wr(self.curr.2) + vg - wr(8) + wr(dbdg)).0,
-                        self.curr.3,
-                    )
-                },
-                RUN(_) => self.curr,
+                LUMA(dg, drdg, dbdg) => (
+                    self.curr.0
+                        .wrapping_add(dg)
+                        .wrapping_sub(8)
+                        .wrapping_add(drdg),
+                    self.curr.1
+                        .wrapping_add(dg),
+                    self.curr.2
+                        .wrapping_add(dg)
+                        .wrapping_sub(8)
+                        .wrapping_add(dbdg),
+                    self.curr.3,
+                ),
+                RUN(_) => self.curr, 
             };
             let r = match chunk {
                 RUN(r) => r,
                 _ => 0,
             };
-
             self.index[hash(self.curr) as usize] = self.curr;
             for _ in 0..=r {
-                pixels.push(self.curr);
+                self.pixels.push(self.curr);
             }
-        } 
-        f(&pixels[..]);
+            Some(chunk)
+        } else {
+            None
+        }
     }
 }
 
 impl<I> Iterator for Decoder<I> 
-where
+where 
     I: Iterator<Item = Chunk>
 {
-    type Item = 
-
+    type Item = Pix;
+    
+    fn next(&mut self) -> Option<Pix> {
+        if self.top >= self.pixels.len() {
+            if let None = self.decode_next_chunk() {
+                return None
+            }
+        }
+        self.top += 1;
+        Some(self.pixels[self.top - 1])
+    }
 }
+
 /*
 pub fn decode_debug(f: &mut File, width: u32, height: u32) -> Result<Vec<u8>> {
     let num_pixels = width*height;

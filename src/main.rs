@@ -58,7 +58,70 @@ fn main() {
         .map(|b| b.unwrap())
         .chunks();
 
+    let mut decode = Decoder::new(chunks);
 
+
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+
+    let mut surface = Surface::new(
+        width,
+        height,
+        RGBA8888,
+    ).unwrap();
+
+    let window = video_subsystem
+        .window("Jasper's QOI Image Viewer", width*2, height*2)
+        .position_centered()
+        .opengl()
+        .build()
+        .unwrap();
+
+    let mut canvas = window.into_canvas().build().unwrap();
+    let texture_creator = canvas.texture_creator();
+
+    let mut i = 0;
+    let mut event_pump = sdl_context.event_pump().unwrap();
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Return),
+                    ..
+                } => { 
+                    surface.with_lock_mut(|v| {
+                        println!("{}", v.len());
+                        for _j in 0..100 {
+                            if let Some(p) = decode.next() {
+                                v[i] = p.3;
+                                v[i+1] = p.2;
+                                v[i+2] = p.1;
+                                v[i+3] = p.0;
+                                i += 4;
+                            } else {
+                                break;
+                            }
+                        }
+                    });
+                }
+                _ => {}
+            }
+        }
+        let texture = surface.as_texture(&texture_creator).unwrap();
+
+        canvas.copy(
+            &texture,
+            None,
+            None,
+        ).unwrap();
+        canvas.present();
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
+    }
 }
 
 
