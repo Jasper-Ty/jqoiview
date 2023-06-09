@@ -3,14 +3,15 @@ pub mod decode;
 pub mod qoi;
 
 pub type Pix = (u8, u8, u8, u8);
-pub fn hash((r, g, b, a): (u8, u8, u8, u8)) -> u8 {
+pub fn hash((r, g, b, a): (u8, u8, u8, u8)) -> usize {
     let (r, g, b, a) = (
-        r.wrapping_mul(3),
-        g.wrapping_mul(5),
-        b.wrapping_mul(7),
-        a.wrapping_mul(11),
+        (r as usize) * 3,
+        (g as usize) * 5,
+        (b as usize) * 7,
+        (a as usize) * 11,
     );
-    r.wrapping_add(g).wrapping_add(b).wrapping_add(a) % 64
+    let h = r + g + b + a;
+    h % 64
 } 
 
 const QOI_OP_RGB: u8    = 0b11111110;
@@ -71,13 +72,17 @@ where
                 self.iter.next()?,
             )),
             b1 => match b1 & QOI_MASK_2 {
-                QOI_OP_INDEX => Some(INDEX(b1)),
-                QOI_OP_DIFF => Some(DIFF((b1 >> 4) & 0x03, (b1 >> 2) & 0x03, b1 & 0x03)),
+                QOI_OP_INDEX => Some(INDEX(b1 & 0b00111111)),
+                QOI_OP_DIFF => Some(DIFF(
+                    (b1 & 0b00110000) >> 4,
+                    (b1 & 0b00001100) >> 2, 
+                    (b1 & 0b00000011) >> 0,
+                )),
                 QOI_OP_LUMA => {
                     let b2 = self.iter.next()?;
                     Some(LUMA(
                         b1 & 0b00111111,
-                        b2 & 0b11110000 >> 4,
+                        (b2 & 0b11110000) >> 4,
                         b2 & 0b00001111, 
                     ))
                 },

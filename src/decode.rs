@@ -1,7 +1,4 @@
-use std::num::Wrapping as wr;
-
 use super::hash;
-use super::ChunkIter;
 use super::Chunk;
 use super::Chunk::*;
 use super::Pix;
@@ -12,7 +9,7 @@ where
 {
     iter: I,
     curr: Pix,
-    index: [Pix; 64],
+    pub index: [Pix; 64],
     pixels: Vec<Pix>,
     top: usize,
 }
@@ -39,7 +36,7 @@ where
         if let Some(chunk) = self.iter.next() {
             self.curr = match chunk {
                 RGB(r, g, b) => (r, g, b, 255),
-                RGBA(r, g, b, a) =>(r, g, b, a), 
+                RGBA(r, g, b, a) => (r, g, b, a), 
                 INDEX(i) => self.index[i as usize],
                 DIFF(dr, dg, db) => (
                     self.curr.0
@@ -68,11 +65,11 @@ where
                 ),
                 RUN(_) => self.curr, 
             };
+            self.index[hash(self.curr) as usize] = self.curr;
             let r = match chunk {
                 RUN(r) => r,
                 _ => 0,
             };
-            self.index[hash(self.curr) as usize] = self.curr;
             for _ in 0..=r {
                 self.pixels.push(self.curr);
             }
@@ -100,42 +97,3 @@ where
     }
 }
 
-/*
-pub fn decode_debug(f: &mut File, width: u32, height: u32) -> Result<Vec<u8>> {
-    let num_pixels = width*height;
-    let num_bytes = num_pixels as usize * 4;
-
-    let metadata = f.metadata()?;
-    let chunks_len = metadata.len() - 22;
-    f.seek(SeekFrom::Start(14))?;
-
-    let reader = BufReader::new(f).take(chunks_len);
-    let chunks = ChunkIterator::new(reader.bytes().map(|b| b.unwrap()));
-
-    let mut bytes: Vec<u8> = Vec::with_capacity(num_bytes);
-    for chunk in chunks {
-        let curr = match chunk {
-            RGB(..) => (255, 0, 0, 255),
-            RGBA(..) =>(255, 0, 0, 255), 
-            INDEX(_) => (0, 0, 0, 255),
-            DIFF(..) => (0, 0, 255, 255),
-            LUMA(..) => (0, 255, 0, 255),
-            RUN(_) => (255, 255, 255, 255), 
-        };
-        let r = match chunk {
-            RUN(r) => r,
-            _ => 0,
-        };
-
-        for _ in 0..=r {
-            bytes.push(curr.3);
-            bytes.push(curr.2);
-            bytes.push(curr.1);
-            bytes.push(curr.0);
-        }
-    }
-
-    Ok(bytes)
-}
-
-*/
