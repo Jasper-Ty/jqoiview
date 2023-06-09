@@ -73,7 +73,8 @@ fn main() -> Result<(), Box<dyn error::Error>>{
 
     surface.with_lock_mut(|v| {
         for _j in 0..SKIP {
-            if let Some(p) = decode.next() {
+            if let Some(tracked) = decode.next() {
+                let p = tracked.pix;
                 v[i] = p.3;
                 v[i+1] = p.2;
                 v[i+2] = p.1;
@@ -100,7 +101,8 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                     surface.with_lock_mut(|v| {
                         println!("{}", i/4);
                         for _j in 0..100 {
-                            if let Some(p) = decode.next() {
+                            if let Some(tracked) = decode.next() {
+                                let p = tracked.pix;
                                 v[i] = p.3;
                                 v[i+1] = p.2;
                                 v[i+2] = p.1;
@@ -118,12 +120,15 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                 } => { 
                     surface.with_lock_mut(|v| {
                         println!("{}", i/4);
-                        if let Some(p) = decode.next() {
+                        if let Some(tracked) = decode.next() {
+                            let p = tracked.pix;
                             v[i] = p.3;
                             v[i+1] = p.2;
                             v[i+2] = p.1;
                             v[i+3] = p.0;
                             i += 4;
+                            println!("pix: {:?}", p);
+                            println!("chunk: {:?}", tracked.from);
                         } 
                     });
                 },

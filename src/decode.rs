@@ -4,9 +4,9 @@ use super::Chunk::*;
 use super::Pix;
 
 #[derive(Debug, Copy, Clone)]
-struct TrackedPix {
-    pix: Pix,
-    from: Chunk,
+pub struct TrackedPix {
+    pub pix: Pix,
+    pub from: Chunk,
 }
 
 pub struct Decoder<I>
@@ -59,13 +59,14 @@ where
                 LUMA(dg, drdg, dbdg) => (
                     self.curr.0
                         .wrapping_add(dg)
-                        .wrapping_sub(8)
+                        .wrapping_sub(40)
                         .wrapping_add(drdg),
                     self.curr.1
-                        .wrapping_add(dg),
+                        .wrapping_add(dg)
+                        .wrapping_sub(32),
                     self.curr.2
                         .wrapping_add(dg)
-                        .wrapping_sub(8)
+                        .wrapping_sub(40)
                         .wrapping_add(dbdg),
                     self.curr.3,
                 ),
@@ -94,16 +95,16 @@ impl<I> Iterator for Decoder<I>
 where 
     I: Iterator<Item = Chunk>
 {
-    type Item = Pix;
+    type Item = TrackedPix;
     
-    fn next(&mut self) -> Option<Pix> {
+    fn next(&mut self) -> Option<TrackedPix> {
         if self.top >= self.pixels.len() {
             if let None = self.decode_next_chunk() {
                 return None
             }
         }
         self.top += 1;
-        Some(self.pixels[self.top - 1].pix)
+        Some(self.pixels[self.top - 1])
     }
 }
 
