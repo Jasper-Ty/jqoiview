@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     ).unwrap();
 
     let window = video_subsystem
-        .window("Jasper's QOI Image Viewer", width*2, height*2)
+        .window("Jasper's QOI Image Viewer", width, height)
         .position_centered()
         .opengl()
         .build()
