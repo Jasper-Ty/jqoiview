@@ -3,6 +3,12 @@ use super::Chunk;
 use super::Chunk::*;
 use super::Pix;
 
+#[derive(Debug, Copy, Clone)]
+struct TrackedPix {
+    pix: Pix,
+    from: Chunk,
+}
+
 pub struct Decoder<I>
 where 
     I: Iterator<Item = Chunk>
@@ -10,7 +16,7 @@ where
     iter: I,
     curr: Pix,
     pub index: [Pix; 64],
-    pixels: Vec<Pix>,
+    pixels: Vec<TrackedPix>,
     top: usize,
 }
 impl<I> Decoder<I>
@@ -71,7 +77,11 @@ where
                 _ => 0,
             };
             for _ in 0..=r {
-                self.pixels.push(self.curr);
+                self.pixels.push(TrackedPix {
+                    pix: self.curr,
+                    from: chunk,
+                })
+;
             }
             Some(chunk)
         } else {
@@ -93,7 +103,7 @@ where
             }
         }
         self.top += 1;
-        Some(self.pixels[self.top - 1])
+        Some(self.pixels[self.top - 1].pix)
     }
 }
 
