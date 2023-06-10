@@ -14,10 +14,8 @@ To quit, press `Q` or `Escape`.
 
 ## Installation
 
-Install `cargo`, and then run
+# From crates.io
 
 ```sh 
-cargo build --release
+cargo install jqoiview
 ```
-
-from the project root. Then `jqoiview` will be built in `target/release`. 
