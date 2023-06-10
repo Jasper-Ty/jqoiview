@@ -1,5 +1,7 @@
 [package]
 name = "jqoiview"
+description = "A simple QOI image format viewer"
+license = "MIT"
 version = "0.1.0"
 edition = "2021"
 
