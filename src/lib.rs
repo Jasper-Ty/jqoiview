@@ -3,6 +3,8 @@ use std::{
     io::{
         Read,
         Result,
+        Seek,
+        SeekFrom,
     }
 };
 
@@ -15,6 +17,11 @@ pub struct Header {
 }
 impl Header {
     pub fn from_file(f: &mut File) -> Result<Self> {
+        f.seek(SeekFrom::Start(0))?;
+        let mut buf: [u8; 4] = [0u8; 4];
+        f.read(&mut buf)?;
+        assert_eq!(buf, [113u8, 111u8, 105u8, 102u8]);
+
         let mut buf: [u8; 4] = [0u8; 4];
         f.read(&mut buf)?;
         let width = u32::from_be_bytes(buf);
@@ -119,4 +126,3 @@ where
         ChunkIter(self)
     }
 }
-

@@ -32,11 +32,6 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         .expect("Should have file argument");
 
     let mut f = File::open(filepath)?;
-       
-    let mut buf: [u8; 4] = [0u8; 4];
-    f.read(&mut buf)?;
-    assert_eq!(buf, [113u8, 111u8, 105u8, 102u8]);
-
     let header = Header::from_file(&mut f)?;
 
     let width = header.width;
