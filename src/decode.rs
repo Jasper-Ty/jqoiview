@@ -41,7 +41,7 @@ where
     fn decode_next_chunk(&mut self) -> Option<Chunk> {
         if let Some(chunk) = self.iter.next() {
             self.curr = match chunk {
-                RGB(r, g, b) => (r, g, b, 255),
+                RGB(r, g, b) => (r, g, b, self.curr.3),
                 RGBA(r, g, b, a) => (r, g, b, a), 
                 INDEX(i) => self.index[i as usize],
                 DIFF(dr, dg, db) => (
@@ -72,7 +72,6 @@ where
                 ),
                 RUN(_) => self.curr, 
             };
-            self.index[hash(self.curr) as usize] = self.curr;
             let r = match chunk {
                 RUN(r) => r,
                 _ => 0,
@@ -81,9 +80,9 @@ where
                 self.pixels.push(TrackedPix {
                     pix: self.curr,
                     from: chunk,
-                })
-;
+                });
             }
+            self.index[hash(self.curr) as usize] = self.curr;
             Some(chunk)
         } else {
             None

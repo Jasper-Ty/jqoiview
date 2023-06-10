@@ -6,6 +6,7 @@ use std::io::{ BufReader, Read, Seek, SeekFrom };
 use quite_ok_image::qoi::QoiHeader;
 use quite_ok_image::decode::Decoder;
 use quite_ok_image::BytesToChunks;
+use quite_ok_image::hash;
 
 use sdl2::{
     event::Event,
@@ -71,8 +72,9 @@ fn main() -> Result<(), Box<dyn error::Error>>{
 
     let mut i = 0;
 
+
     surface.with_lock_mut(|v| {
-        for _j in 0..SKIP {
+        for _j in 0..(width*height) as usize {
             if let Some(tracked) = decode.next() {
                 let p = tracked.pix;
                 v[i] = p.3;
@@ -85,6 +87,14 @@ fn main() -> Result<(), Box<dyn error::Error>>{
             }
         }
     });
+    let texture = surface.as_texture(&texture_creator).unwrap();
+
+    canvas.copy(
+        &texture,
+        None,
+        None,
+    ).unwrap();
+    canvas.present();
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -127,7 +137,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                             v[i+2] = p.1;
                             v[i+3] = p.0;
                             i += 4;
-                            println!("pix: {:?}", p);
+                            println!("pix: {:?} [{}]", p, hash(p));
                             println!("chunk: {:?}", tracked.from);
                         } 
                     });
@@ -141,14 +151,6 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                 _ => {}
             }
         }
-        let texture = surface.as_texture(&texture_creator).unwrap();
-
-        canvas.copy(
-            &texture,
-            None,
-            None,
-        ).unwrap();
-        canvas.present();
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
     Ok(())
