@@ -6,7 +6,9 @@ Program for viewing [QOI](https://qoiformat.org/) images.
 
 To view a QOI file (`*.qoi`)
 
-```sh jqoiview <file>```
+```sh 
+jqoiview <file>
+```
 
 To quit, press `Q` or `Escape`.
 
@@ -14,6 +16,8 @@ To quit, press `Q` or `Escape`.
 
 Install `cargo`, and then run
 
-```sh cargo build --release```
+```sh 
+cargo build --release
+```
 
 from the project root. Then `jqoiview` will be built in `target/release`. 
