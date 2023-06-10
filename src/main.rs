@@ -1,12 +1,20 @@
-use std::env;
-use std::error;
-use std::fs::File;
-use std::io::{ BufReader, Read, Seek, SeekFrom };
+use std::{
+    env,
+    error,
+    fs::File,
+    io::{
+        BufReader,
+        Read,
+        Seek,
+        SeekFrom,
+    }
+};
 
-use quite_ok_image::qoi::QoiHeader;
-use quite_ok_image::decode::Decoder;
-use quite_ok_image::BytesToChunks;
-use quite_ok_image::hash;
+use quite_ok_image::{
+    qoi::QoiHeader,
+    decode::Decoder,
+    BytesToChunks,
+};
 
 use sdl2::{
     event::Event,
@@ -14,9 +22,6 @@ use sdl2::{
     pixels::{ PixelFormatEnum::RGBA8888 },
     surface::Surface,
 };
-use std::time::Duration;
-
-const SKIP: usize = 2410;
 
 fn main() -> Result<(), Box<dyn error::Error>>{
     let args: Vec<String> = env::args().collect();
@@ -93,7 +98,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         &texture,
         None,
         None,
-    ).unwrap();
+    )?;
     canvas.present();
 
     let mut event_pump = sdl_context.event_pump()?;
