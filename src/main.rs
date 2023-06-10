@@ -25,13 +25,24 @@ use sdl2::{
     surface::Surface,
 };
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() -> Result<(), Box<dyn error::Error>>{
     let args: Vec<String> = env::args().collect();
 
-    let Some(filepath) = args.get(1)
-    else {
-        println!("Usage: qoiview <file>");
-        return Ok(());
+    let filepath = match args
+        .get(1)
+        .map(|s| s.as_str()) 
+    {
+        Some("-h") | None => {
+            println!("Usage: jqoiview <file>");
+            return Ok(())
+        },
+        Some("-v") => {
+            println!("jqoiview v{}", VERSION);
+            return Ok(())
+        },
+        Some(arg) => arg,
     };
 
     let mut f = File::open(filepath)?;
