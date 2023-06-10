@@ -22,11 +22,9 @@ impl Header {
         f.read(&mut buf)?;
         assert_eq!(buf, [113u8, 111u8, 105u8, 102u8]);
 
-        let mut buf: [u8; 4] = [0u8; 4];
         f.read(&mut buf)?;
         let width = u32::from_be_bytes(buf);
 
-        let mut buf: [u8; 4] = [0u8; 4];
         f.read(&mut buf)?;
         let height = u32::from_be_bytes(buf);
 
