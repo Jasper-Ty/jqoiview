@@ -28,10 +28,14 @@ impl Header {
         f.read(&mut buf)?;
         let height = u32::from_be_bytes(buf);
 
-        let mut buf: [u8; 2] = [0u8; 2];
         f.read(&mut buf)?;
         let channels = buf[0];
         let colorspace = buf[1];
+
+        let mut buf: [u8; 8] = [0u8; 8];
+        f.seek(SeekFrom::End(-8))?;
+        f.read(&mut buf)?;
+        assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 1]);
 
         Ok(Self {
             width,
