@@ -78,8 +78,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
 
     surface.with_lock_mut(|v| {
         for _j in 0..(width*height) as usize {
-            if let Some(tracked) = decode.next() {
-                let p = tracked.pix;
+            if let Some(p) = decode.next() {
                 v[i] = p.3;
                 v[i+1] = p.2;
                 v[i+2] = p.1;

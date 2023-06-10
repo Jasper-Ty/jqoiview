@@ -3,20 +3,14 @@ use super::Chunk;
 use super::Chunk::*;
 use super::Pix;
 
-#[derive(Debug, Copy, Clone)]
-pub struct TrackedPix {
-    pub pix: Pix,
-    pub from: Chunk,
-}
-
 pub struct Decoder<I>
 where 
     I: Iterator<Item = Chunk>
 {
     iter: I,
     curr: Pix,
-    pub index: [Pix; 64],
-    pixels: Vec<TrackedPix>,
+    index: [Pix; 64],
+    pixels: Vec<Pix>,
     top: usize,
 }
 impl<I> Decoder<I>
@@ -72,17 +66,14 @@ where
                 ),
                 RUN(_) => self.curr, 
             };
+            self.index[hash(self.curr) as usize] = self.curr;
             let r = match chunk {
                 RUN(r) => r,
                 _ => 0,
             };
             for _ in 0..=r {
-                self.pixels.push(TrackedPix {
-                    pix: self.curr,
-                    from: chunk,
-                });
+                self.pixels.push(self.curr);
             }
-            self.index[hash(self.curr) as usize] = self.curr;
             Some(chunk)
         } else {
             None
@@ -94,9 +85,9 @@ impl<I> Iterator for Decoder<I>
 where 
     I: Iterator<Item = Chunk>
 {
-    type Item = TrackedPix;
+    type Item = Pix;
     
-    fn next(&mut self) -> Option<TrackedPix> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.top >= self.pixels.len() {
             if let None = self.decode_next_chunk() {
                 return None
