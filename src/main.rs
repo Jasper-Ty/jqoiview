@@ -31,10 +31,8 @@ fn main() -> Result<(), Box<dyn error::Error>>{
 
     let mut f = File::open(filepath)?;
        
-
     let mut buf: [u8; 4] = [0u8; 4];
     f.read(&mut buf)?;
-
     assert_eq!(buf, [113u8, 111u8, 105u8, 102u8]);
 
     let header = QoiHeader::from_file(&mut f)?;

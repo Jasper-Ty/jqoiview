@@ -1,4 +1,3 @@
-pub mod encode;
 pub mod decode;
 pub mod qoi;
 
@@ -10,8 +9,7 @@ pub fn hash((r, g, b, a): (u8, u8, u8, u8)) -> usize {
         (b as usize) * 7,
         (a as usize) * 11,
     );
-    let h = r + g + b + a;
-    h % 64
+    (r + g + b + a) % 64
 } 
 
 const QOI_OP_RGB: u8    = 0b11111110;
