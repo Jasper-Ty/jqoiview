@@ -10,9 +10,9 @@ use std::{
     }
 };
 
-use quite_ok_image::{
+use jqoiview::{
     Chunk::*,
-    qoi::QoiHeader,
+    QoiHeader,
     BytesToChunks,
     Pix,
     hash,
