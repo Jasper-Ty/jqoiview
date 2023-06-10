@@ -54,7 +54,7 @@ where
             )),
             b1 => match b1 & QOI_MASK_2 {
                 QOI_OP_INDEX => Some(INDEX(b1 & 0b00111111)),
-                QOI_OP_DIFF => Some(DIFF(b1 >> 4 & 0x3, b1 >> 2 & 0x3, b1 & 0x3)),
+                QOI_OP_DIFF => Some(DIFF(b1 >> 4 & 3, b1 >> 2 & 3, b1 & 3)),
                 QOI_OP_LUMA => {
                     let b2 = iter.next()?;
                     Some(LUMA(
