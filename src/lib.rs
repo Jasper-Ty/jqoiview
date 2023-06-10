@@ -21,7 +21,6 @@ const QOI_OP_RUN: u8    = 0b11000000;
 
 const QOI_MASK_2: u8    = 0b11000000;
 
-#[derive(Debug, Clone, Copy)]
 pub enum Chunk {
     RGB(u8, u8, u8),
     RGBA(u8, u8, u8, u8),
