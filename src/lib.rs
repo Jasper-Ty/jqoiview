@@ -88,14 +88,14 @@ use std::io::Read;
 use std::io::Result;
 
 #[derive(Debug)]
-pub struct QoiHeader {
+pub struct Header {
     pub width: u32,
     pub height: u32,
     pub channels: u8,
     pub colorspace: u8,
 }
-impl QoiHeader {
-    pub fn from_file(f: &mut File) -> Result<QoiHeader> {
+impl Header {
+    pub fn from_file(f: &mut File) -> Result<Self> {
         let mut buf: [u8; 4] = [0u8; 4];
         f.read(&mut buf)?;
         let width = u32::from_be_bytes(buf);
@@ -109,7 +109,7 @@ impl QoiHeader {
         let channels = buf[0];
         let colorspace = buf[1];
 
-        Ok(QoiHeader {
+        Ok(Self {
             width,
             height,
             channels,

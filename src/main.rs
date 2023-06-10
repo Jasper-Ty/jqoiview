@@ -12,7 +12,7 @@ use std::{
 
 use jqoiview::{
     Chunk::*,
-    QoiHeader,
+    Header,
     Chunks,
     Pix,
     hash,
@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     f.read(&mut buf)?;
     assert_eq!(buf, [113u8, 111u8, 105u8, 102u8]);
 
-    let header = QoiHeader::from_file(&mut f)?;
+    let header = Header::from_file(&mut f)?;
 
     let width = header.width;
     let height = header.height;
