@@ -32,10 +32,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         .expect("Should have file argument");
 
     let mut f = File::open(filepath)?;
-    let header = Header::from_file(&mut f)?;
-
-    let width = header.width;
-    let height = header.height;
+    let Header { width, height, .. } = Header::from_file(&mut f)?;
     
     let metadata = f.metadata()?;
     let chunks_len = metadata.len() - 22;
