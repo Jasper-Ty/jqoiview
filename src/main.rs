@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let mut surface = Surface::from_data(
+    let surface = Surface::from_data(
         &mut pixels,
         width,
         height,
