@@ -13,7 +13,6 @@ use std::{
 use quite_ok_image::{
     Chunk::*,
     qoi::QoiHeader,
-    decode::Decoder,
     BytesToChunks,
     Pix,
     hash,

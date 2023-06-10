@@ -1,4 +1,3 @@
-pub mod decode;
 pub mod qoi;
 
 pub type Pix = (u8, u8, u8, u8);
