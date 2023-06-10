@@ -55,9 +55,6 @@ const QOI_OP_DIFF: u8   = 0b01000000;
 const QOI_OP_LUMA: u8   = 0b10000000;
 const QOI_OP_RUN: u8    = 0b11000000;
 
-const MASK_78: u8    = 0b11000000;
-const MASK_06: u8 = 0b00111111;
-
 pub enum Chunk {
     RGB(u8, u8, u8),
     RGBA(u8, u8, u8, u8),
