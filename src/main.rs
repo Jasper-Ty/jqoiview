@@ -108,8 +108,8 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         }
     }
 
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
+    let sdl_context = sdl2::init()?;
+    let video_subsystem = sdl_context.video()?;
 
     let surface = Surface::from_data(
         &mut pixels,
@@ -117,17 +117,16 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         height,
         width*4,
         RGBA8888,
-    ).unwrap();
+    )?;
 
     let window = video_subsystem
         .window("Jasper's QOI Image Viewer", width, height)
         .position_centered()
-        .build()
-        .unwrap();
+        .build()?;
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let mut canvas = window.into_canvas().build()?;
     let texture_creator = canvas.texture_creator();
-    let texture = surface.as_texture(&texture_creator).unwrap();
+    let texture = surface.as_texture(&texture_creator)?;
 
     canvas.copy(
         &texture,
