@@ -96,7 +96,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
             ), 0),
             RUN(len) => (curr, len), 
         };
-        index[hash(curr) as usize] = curr;
+        index[hash(curr)] = curr;
         for _ in 0..=run {
             pixels.push(curr.3);
             pixels.push(curr.2);
