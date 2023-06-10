@@ -13,7 +13,7 @@ use std::{
 use jqoiview::{
     Chunk::*,
     QoiHeader,
-    BytesToChunks,
+    Chunks,
     Pix,
     hash,
 };

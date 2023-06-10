@@ -77,12 +77,12 @@ where
         }
     }
 }
-pub trait BytesToChunks {
+pub trait Chunks {
     fn chunks(self) -> ChunkIter<Self> 
     where
         Self: Sized + Iterator<Item = u8>;
 }
-impl<I> BytesToChunks for I 
+impl<I> Chunks for I 
 where
     I: Iterator<Item = u8>
 {
