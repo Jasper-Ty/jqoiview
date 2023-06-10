@@ -103,51 +103,11 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => break 'running,
-                Event::KeyDown {
-                    keycode: Some(Keycode::Return),
+                } 
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Q),
                     ..
-                } => { 
-                    surface.with_lock_mut(|v| {
-                        println!("{}", i/4);
-                        for _j in 0..100 {
-                            if let Some(tracked) = decode.next() {
-                                let p = tracked.pix;
-                                v[i] = p.3;
-                                v[i+1] = p.2;
-                                v[i+2] = p.1;
-                                v[i+3] = p.0;
-                                i += 4;
-                            } else {
-                                break;
-                            }
-                        }
-                    });
-                },
-                Event::KeyDown {
-                    keycode: Some(Keycode::Space),
-                    ..
-                } => { 
-                    surface.with_lock_mut(|v| {
-                        println!("{}", i/4);
-                        if let Some(tracked) = decode.next() {
-                            let p = tracked.pix;
-                            v[i] = p.3;
-                            v[i+1] = p.2;
-                            v[i+2] = p.1;
-                            v[i+3] = p.0;
-                            i += 4;
-                            println!("pix: {:?} [{}]", p, hash(p));
-                            println!("chunk: {:?}", tracked.from);
-                        } 
-                    });
-                },
-                Event::KeyDown {
-                    keycode: Some(Keycode::A),
-                    ..
-                } => {
-                    println!("{:?}", decode.index);
-                }
+                }=> break 'running,
                 _ => {}
             }
         }
