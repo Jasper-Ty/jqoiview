@@ -14,8 +14,6 @@ To quit, press `Q` or `Escape`.
 
 ## Installation
 
-# From crates.io
-
 ```sh 
 cargo install jqoiview
 ```
