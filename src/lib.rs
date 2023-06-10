@@ -1,3 +1,42 @@
+use std::{
+    fs::File,
+    io::{
+        Read,
+        Result,
+    }
+};
+
+#[derive(Debug)]
+pub struct Header {
+    pub width: u32,
+    pub height: u32,
+    pub channels: u8,
+    pub colorspace: u8,
+}
+impl Header {
+    pub fn from_file(f: &mut File) -> Result<Self> {
+        let mut buf: [u8; 4] = [0u8; 4];
+        f.read(&mut buf)?;
+        let width = u32::from_be_bytes(buf);
+
+        let mut buf: [u8; 4] = [0u8; 4];
+        f.read(&mut buf)?;
+        let height = u32::from_be_bytes(buf);
+
+        let mut buf: [u8; 2] = [0u8; 2];
+        f.read(&mut buf)?;
+        let channels = buf[0];
+        let colorspace = buf[1];
+
+        Ok(Self {
+            width,
+            height,
+            channels,
+            colorspace,
+        })
+    }
+}
+
 pub type Pix = (u8, u8, u8, u8);
 pub fn hash((r, g, b, a): (u8, u8, u8, u8)) -> usize {
     let (r, g, b, a) = (
@@ -83,37 +122,3 @@ where
     }
 }
 
-use std::fs::File;
-use std::io::Read;
-use std::io::Result;
-
-#[derive(Debug)]
-pub struct Header {
-    pub width: u32,
-    pub height: u32,
-    pub channels: u8,
-    pub colorspace: u8,
-}
-impl Header {
-    pub fn from_file(f: &mut File) -> Result<Self> {
-        let mut buf: [u8; 4] = [0u8; 4];
-        f.read(&mut buf)?;
-        let width = u32::from_be_bytes(buf);
-
-        let mut buf: [u8; 4] = [0u8; 4];
-        f.read(&mut buf)?;
-        let height = u32::from_be_bytes(buf);
-
-        let mut buf: [u8; 2] = [0u8; 2];
-        f.read(&mut buf)?;
-        let channels = buf[0];
-        let colorspace = buf[1];
-
-        Ok(Self {
-            width,
-            height,
-            channels,
-            colorspace,
-        })
-    }
-}
