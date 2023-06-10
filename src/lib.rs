@@ -36,15 +36,6 @@ where
     iter: I,
 }
 
-impl<I> ChunkIter<I> 
-where
-    I: Iterator<Item = u8>
-{
-    pub fn new(iter: I) -> Self {
-        Self{ iter }
-    }
-}
-
 impl<I> Iterator for ChunkIter<I> 
 where
     I: Iterator<Item = u8>
@@ -96,7 +87,7 @@ where
     I: Iterator<Item = u8>
 {
     fn chunks(self) -> ChunkIter<Self> {
-        ChunkIter::new(self)
+        ChunkIter { iter: self }
     }
 }
 
