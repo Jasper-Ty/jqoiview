@@ -55,7 +55,8 @@ const QOI_OP_DIFF: u8   = 0b01000000;
 const QOI_OP_LUMA: u8   = 0b10000000;
 const QOI_OP_RUN: u8    = 0b11000000;
 
-const QOI_MASK_2: u8    = 0b11000000;
+const MASK_78: u8    = 0b11000000;
+const MASK_06: u8 = 0b00111111;
 
 pub enum Chunk {
     RGB(u8, u8, u8),
@@ -91,7 +92,7 @@ where
                 iter.next()?, 
                 iter.next()?,
             )),
-            b1 => match b1 & QOI_MASK_2 {
+            b1 => match b1 & 0b11000000 {
                 QOI_OP_INDEX => Some(INDEX(b1 & 0b00111111)),
                 QOI_OP_DIFF => Some(DIFF(b1 >> 4 & 3, b1 >> 2 & 3, b1 & 3)),
                 QOI_OP_LUMA => {
