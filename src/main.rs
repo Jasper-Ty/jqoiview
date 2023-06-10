@@ -28,8 +28,11 @@ use sdl2::{
 fn main() -> Result<(), Box<dyn error::Error>>{
     let args: Vec<String> = env::args().collect();
 
-    let filepath = args.get(1)
-        .expect("Should have file argument");
+    let Some(filepath) = args.get(1)
+    else {
+        println!("Usage: qoiview <file>");
+        return Ok(());
+    };
 
     let mut f = File::open(filepath)?;
     let Header { width, height, .. } = Header::from_file(&mut f)?;
