@@ -15,6 +15,7 @@ pub struct Header {
     pub colorspace: u8,
 }
 impl Header {
+    pub const SIZE: u64 = 14;
     pub fn from_file(f: &mut File) -> Result<Self> {
         f.seek(SeekFrom::Start(0))?;
         let mut buf: [u8; 4] = [0u8; 4];

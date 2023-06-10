@@ -29,7 +29,6 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<(), Box<dyn error::Error>>{
     let args: Vec<String> = env::args().collect();
-
     let filepath = match args
         .get(1)
         .map(|s| s.as_str()) 
@@ -47,11 +46,10 @@ fn main() -> Result<(), Box<dyn error::Error>>{
 
     let mut f = File::open(filepath)?;
     let Header { width, height, .. } = Header::from_file(&mut f)?;
-    
     let metadata = f.metadata()?;
-    let chunks_len = metadata.len() - 22;
-    f.seek(SeekFrom::Start(14))?;
 
+    let chunks_len = metadata.len() - 22;
+    f.seek(SeekFrom::Start(Header::SIZE))?;
     let chunks = BufReader::new(f)
         .take(chunks_len)
         .bytes()
