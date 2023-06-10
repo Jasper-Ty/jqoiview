@@ -33,11 +33,14 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         .get(1)
         .map(|s| s.as_str()) 
     {
-        None | Some("-h") => {
+        None 
+        | Some("-h") 
+        | Some("--help") => {
             println!("Usage: jqoiview <file>");
             return Ok(())
         },
-        Some("-v") => {
+        Some("-v") 
+        | Some("--version") => {
             println!("jqoiview v{}", VERSION);
             return Ok(())
         },
