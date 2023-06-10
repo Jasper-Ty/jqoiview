@@ -11,7 +11,6 @@ use std::{
 };
 
 use jqoiview::{
-    Chunk::*,
     Header,
     Chunks,
     Pix,
@@ -65,38 +64,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     let mut pixels: Vec<u8> = Vec::with_capacity((4*width*height) as usize);
 
     for chunk in chunks {
-        (curr, run) = match chunk {
-            RGB(r, g, b) => ((r, g, b, curr.3), 0),
-            RGBA(r, g, b, a) => ((r, g, b, a), 0), 
-            INDEX(i) => (index[i as usize], 0),
-            DIFF(dr, dg, db) => ((
-                curr.0
-                    .wrapping_add(dr)
-                    .wrapping_sub(2),
-                curr.1
-                    .wrapping_add(dg)
-                    .wrapping_sub(2),
-                curr.2
-                    .wrapping_add(db)
-                    .wrapping_sub(2),
-                curr.3,
-            ), 0),
-            LUMA(dg, drdg, dbdg) => ((
-                curr.0
-                    .wrapping_add(dg)
-                    .wrapping_sub(40)
-                    .wrapping_add(drdg),
-                curr.1
-                    .wrapping_add(dg)
-                    .wrapping_sub(32),
-                curr.2
-                    .wrapping_add(dg)
-                    .wrapping_sub(40)
-                    .wrapping_add(dbdg),
-                curr.3,
-            ), 0),
-            RUN(len) => (curr, len), 
-        };
+        (curr, run) = chunk.parse(curr, &index);
         index[hash(curr)] = curr;
         for _ in 0..=run {
             pixels.push(curr.3);

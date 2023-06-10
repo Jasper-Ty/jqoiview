@@ -60,6 +60,7 @@ const QOI_OP_DIFF: u8   = 0b01000000;
 const QOI_OP_LUMA: u8   = 0b10000000;
 const QOI_OP_RUN: u8    = 0b11000000;
 
+#[derive(Clone, Copy)]
 pub enum Chunk {
     RGB(u8, u8, u8),
     RGBA(u8, u8, u8, u8),
@@ -68,6 +69,43 @@ pub enum Chunk {
     LUMA(u8, u8, u8),
     RUN(u8),
 }
+impl Chunk {
+    pub fn parse(&self, curr: Pix, index: &[Pix]) -> (Pix, u8) {
+        match *self {
+            RGB(r, g, b) => ((r, g, b, curr.3), 0),
+            RGBA(r, g, b, a) => ((r, g, b, a), 0), 
+            INDEX(i) => (index[i as usize], 0),
+            DIFF(dr, dg, db) => ((
+                curr.0
+                    .wrapping_add(dr)
+                    .wrapping_sub(2),
+                curr.1
+                    .wrapping_add(dg)
+                    .wrapping_sub(2),
+                curr.2
+                    .wrapping_add(db)
+                    .wrapping_sub(2),
+                curr.3,
+            ), 0),
+            LUMA(dg, drdg, dbdg) => ((
+                curr.0
+                    .wrapping_add(dg)
+                    .wrapping_sub(40)
+                    .wrapping_add(drdg),
+                curr.1
+                    .wrapping_add(dg)
+                    .wrapping_sub(32),
+                curr.2
+                    .wrapping_add(dg)
+                    .wrapping_sub(40)
+                    .wrapping_add(dbdg),
+                curr.3,
+            ), 0),
+            RUN(len) => (curr, len), 
+        }
+    }
+}
+
 
 use Chunk::*;
 
