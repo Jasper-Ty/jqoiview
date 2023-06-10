@@ -29,12 +29,7 @@ pub enum Chunk {
 
 use Chunk::*;
 
-pub struct ChunkIter<I> 
-where
-    I: Iterator<Item = u8>
-{
-    iter: I,
-}
+pub struct ChunkIter<I: Iterator<Item=u8>> (I);
 
 impl<I> Iterator for ChunkIter<I> 
 where
@@ -43,18 +38,19 @@ where
     type Item = Chunk;
 
     fn next(&mut self) -> Option<Chunk> {
-        let b1 = self.iter.next()?;
+        let Self(iter) = self;
+        let b1 = iter.next()?;
         match b1 {
             QOI_OP_RGB => Some(RGB(
-                self.iter.next()?, 
-                self.iter.next()?, 
-                self.iter.next()?,
+                iter.next()?, 
+                iter.next()?, 
+                iter.next()?,
             )),
             QOI_OP_RGBA => Some(RGBA(
-                self.iter.next()?, 
-                self.iter.next()?, 
-                self.iter.next()?, 
-                self.iter.next()?,
+                iter.next()?, 
+                iter.next()?, 
+                iter.next()?, 
+                iter.next()?,
             )),
             b1 => match b1 & QOI_MASK_2 {
                 QOI_OP_INDEX => Some(INDEX(b1 & 0b00111111)),
@@ -64,7 +60,7 @@ where
                     (b1 & 0b00000011) >> 0,
                 )),
                 QOI_OP_LUMA => {
-                    let b2 = self.iter.next()?;
+                    let b2 = iter.next()?;
                     Some(LUMA(
                         b1 & 0b00111111,
                         (b2 & 0b11110000) >> 4,
@@ -87,7 +83,7 @@ where
     I: Iterator<Item = u8>
 {
     fn chunks(self) -> ChunkIter<Self> {
-        ChunkIter { iter: self }
+        ChunkIter(self)
     }
 }
 
