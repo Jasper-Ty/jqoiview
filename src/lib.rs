@@ -8,7 +8,6 @@ use std::{
     }
 };
 
-#[derive(Debug)]
 pub struct Header {
     pub width: u32,
     pub height: u32,
