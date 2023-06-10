@@ -95,7 +95,8 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         None,
     ).unwrap();
     canvas.present();
-    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    let mut event_pump = sdl_context.event_pump()?;
     for event in event_pump.wait_iter() {
         match event {
             Event::Quit { .. }
