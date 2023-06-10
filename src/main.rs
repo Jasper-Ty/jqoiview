@@ -96,22 +96,19 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     ).unwrap();
     canvas.present();
     let mut event_pump = sdl_context.event_pump().unwrap();
-    'running: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } 
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Q),
-                    ..
-                }=> break 'running,
-                _ => {}
-            }
+    for event in event_pump.wait_iter() {
+        match event {
+            Event::Quit { .. }
+            | Event::KeyDown {
+                keycode: Some(Keycode::Escape),
+                ..
+            } 
+            | Event::KeyDown {
+                keycode: Some(Keycode::Q),
+                ..
+            } => break,
+            _ => {}
         }
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
     Ok(())
 }
