@@ -115,7 +115,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     )?;
 
     let window = video_subsystem
-        .window("Jasper's QOI Image Viewer", width, height)
+        .window("jqoiview", width, height)
         .position_centered()
         .build()?;
 
