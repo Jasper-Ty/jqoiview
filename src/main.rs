@@ -59,15 +59,16 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         .chunks();
 
     let mut curr: Pix = (0, 0, 0, 255);
+    let mut run;
     let mut index = [(0, 0, 0, 0); 64];
     let mut pixels: Vec<u8> = Vec::with_capacity((4*width*height) as usize);
 
     for chunk in chunks {
-        curr = match chunk {
-            RGB(r, g, b) => (r, g, b, curr.3),
-            RGBA(r, g, b, a) => (r, g, b, a), 
-            INDEX(i) => index[i as usize],
-            DIFF(dr, dg, db) => (
+        (curr, run) = match chunk {
+            RGB(r, g, b) => ((r, g, b, curr.3), 0),
+            RGBA(r, g, b, a) => ((r, g, b, a), 0), 
+            INDEX(i) => (index[i as usize], 0),
+            DIFF(dr, dg, db) => ((
                 curr.0
                     .wrapping_add(dr)
                     .wrapping_sub(2),
@@ -78,8 +79,8 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                     .wrapping_add(db)
                     .wrapping_sub(2),
                 curr.3,
-            ),
-            LUMA(dg, drdg, dbdg) => (
+            ), 0),
+            LUMA(dg, drdg, dbdg) => ((
                 curr.0
                     .wrapping_add(dg)
                     .wrapping_sub(40)
@@ -92,15 +93,11 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                     .wrapping_sub(40)
                     .wrapping_add(dbdg),
                 curr.3,
-            ),
-            RUN(_) => curr, 
+            ), 0),
+            RUN(len) => (curr, len), 
         };
         index[hash(curr) as usize] = curr;
-        let r = match chunk {
-            RUN(r) => r,
-            _ => 0,
-        };
-        for _ in 0..=r {
+        for _ in 0..=run {
             pixels.push(curr.3);
             pixels.push(curr.2);
             pixels.push(curr.1);

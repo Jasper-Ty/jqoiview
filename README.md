@@ -4,12 +4,16 @@ Program for viewing QOI images.
 
 ## Usage
 
-``` $ jqoiview <file>```
+To view a qoi file
+
+```jqoiview <file>```
+
+To quit, press Q or Escape.
 
 ## Installation
 
 Install cargo, and then run
 
-``` cargo build --release ```
+```cargo build --release```
 
 from the root directory.
