@@ -1,6 +1,7 @@
 use std::env;
 use std::error;
 use std::fs::File;
+use std::time::Duration;
 use std::io::{
     BufReader,
     Read,
@@ -97,62 +98,99 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let texture = surface.as_texture(&texture_creator)?;
 
 
-    let mut view_rect = Rect::new(0, 0, width as u32, height as u32);
-    let mut zoom_level:i32 = 0;
+    let mut view_width = width as u32;
+    let mut view_height = height as u32;
     let mut dx: i32 = 0;
     let mut dy: i32 = 0;
     let mut view_x: i32 = 0;
     let mut view_y: i32 = 0;
+    let mut view_rect = Rect::new(0, 0, view_width, view_height);
 
     draw(&mut canvas, &texture, view_rect)?;
 
     let mut event_pump = sdl_context.event_pump()?;
-    for event in event_pump.wait_iter() {
-        match event {
-            Event::Quit { .. }
-            | Event::KeyDown {
-                keycode: Some(Keycode::Escape),
-                ..
-            } 
-            | Event::KeyDown {
-                keycode: Some(Keycode::Q),
-                ..
-            } => break,
-            Event::KeyDown {
-                keycode: Some(Keycode::Up),
-                ..
-            } => { 
-                view_y += 16;
-            },
-            Event::KeyDown {
-                keycode: Some(Keycode::Down),
-                ..
-            } => { 
-                view_y -= 16;
-            },
-            Event::KeyDown {
-                keycode: Some(Keycode::Left),
-                ..
-            } => { 
-                view_x += 16;
-            },
-            Event::KeyDown {
-                keycode: Some(Keycode::Right),
-                ..
-            } => { 
-                view_x -= 16;
-            },
-            Event::Window { 
-                win_event: WindowEvent::Resized(w, h),
-                ..
-            } => { 
-                dx = (w as i32 - width as i32) / 2;
-                dy = (h as i32 - height as i32) / 2;
-            }
-            _ => {}
-        };
-        let rect = Rect::new(dx+view_x, dy+view_y, width as u32, height as u32);
-        draw(&mut canvas, &texture, rect)?;
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } 
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Up),
+                    ..
+                } 
+                | Event::KeyDown {
+                    keycode: Some(Keycode::K),
+                    ..
+                } => { 
+                    view_y += 16;
+                },
+                Event::KeyDown {
+                    keycode: Some(Keycode::Down),
+                    ..
+                } 
+                | Event::KeyDown {
+                    keycode: Some(Keycode::J),
+                    ..
+                } => { 
+                    view_y -= 16;
+                },
+                Event::KeyDown {
+                    keycode: Some(Keycode::Left),
+                    ..
+                }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::H),
+                    ..
+                } => { 
+                    view_x += 16;
+                },
+                Event::KeyDown {
+                    keycode: Some(Keycode::Right),
+                    ..
+                }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::L),
+                    ..
+                } => { 
+                    view_x -= 16;
+                },
+                Event::KeyDown {
+                    keycode: Some(Keycode::I),
+                    ..
+                } => { 
+                    view_width = ((view_width as f64) * 1.2) as u32;
+                    view_height = ((view_height as f64) * 1.2) as u32;
+                },
+                Event::KeyDown {
+                    keycode: Some(Keycode::O),
+                    ..
+                } => { 
+                    view_width = ((view_width as f64) / 1.2) as u32;
+                    view_height = ((view_height as f64) / 1.2) as u32;
+                },
+                Event::Window { 
+                    win_event: WindowEvent::Resized(w, h),
+                    ..
+                } => { 
+                    dx = (w as i32 - width as i32) / 2;
+                    dy = (h as i32 - height as i32) / 2;
+                }
+                _ => {}
+            };
+            view_rect.set_x(dx + view_x);
+            view_rect.set_y(dy + view_y);
+            view_rect.set_width(view_width);
+            view_rect.set_height(view_height);
+            draw(&mut canvas, &texture, view_rect)?;
+        }
+        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
     Ok(())
 }
