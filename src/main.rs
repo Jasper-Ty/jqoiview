@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let window = video_subsystem
         .window("jqoiview", width, height)
-//        .resizable()
+        .resizable()
         .position_centered()
         .opengl()
         .build()?;
@@ -81,6 +81,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     draw(&mut canvas, &texture, img_rect)?;
 
+    let mut width = width as i32;
+    let mut height = height as i32;
     let mut event_pump = sdl_context.event_pump()?;
     for event in event_pump.wait_iter() {
         match event {
@@ -130,9 +132,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 _ => {}
             },
             Event::Window { 
-                win_event: WindowEvent::Resized(_, _),
+                win_event: WindowEvent::Resized(w, h),
                 ..
             } => { 
+                width = w;
+                height = h;
             },
             _ => {}
         };
