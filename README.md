@@ -12,6 +12,8 @@ jqoiview <file>
 
 To quit, press `Q` or `Escape`.
 
+Use the arrow keys to scroll up/down/left/right.
+
 ## Installation
 
 ```sh 
