@@ -136,8 +136,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             },
             _ => {}
         };
-        println!("zoom: {}", zoom_level);
-        println!("irene: {}", irene);
 
         img_rect.set_x(-((view_x - (width as i32/2)) as i32));
         img_rect.set_y(-((view_y - (height as i32/2)) as i32));
