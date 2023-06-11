@@ -7,7 +7,6 @@ use std::io::{
     Seek,
     SeekFrom,
 };
-
 use jqoiview::Header;
 use jqoiview::Chunks;
 use jqoiview::Pix;
@@ -75,7 +74,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let mut img_rect = Rect::new(0, 0, width as u32, height as u32);
 
-    draw(&mut canvas, &texture, img_rect);
+    draw(&mut canvas, &texture, img_rect)?;
 
     let mut event_pump = sdl_context.event_pump()?;
     for event in event_pump.wait_iter() {
@@ -142,14 +141,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 zoom_level = if zoom_level > 0 { zoom_level - 1 } else { zoom_level };
             },
             Event::Window { 
-                win_event: WindowEvent::Resized(w, h),
+                win_event: WindowEvent::Resized(_, _),
                 ..
             } => { 
             }
             _ => {}
         };
         println!("zoom: {}", zoom_level);
-        draw(&mut canvas, &texture, img_rect);
+        draw(&mut canvas, &texture, img_rect)?;
     }
     Ok(())
 }
@@ -220,9 +219,6 @@ where
     R: Into<Option<Rect>>
 {
     draw_checkered_background(canvas)?;
-
-    let (width, height) = canvas.window().size();
-    let center = (width/2, height/2);
 
     canvas.copy(
         texture,
