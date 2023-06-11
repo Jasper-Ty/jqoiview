@@ -111,7 +111,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 },
                 Some(Keycode::Plus) 
                 | Some(Keycode::I) => {
-                    let w = img_rect.width();
                     irene = (zoom_level+1) * (irene/zoom_level) + (irene % zoom_level);
                     seulgi = (zoom_level+1) * (seulgi/zoom_level) + (seulgi% zoom_level);
                     view_x = (zoom_level as i32+1) * (view_x/zoom_level as i32) + (view_x % zoom_level as i32);
