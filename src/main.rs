@@ -13,7 +13,6 @@ use jqoiview::Chunks;
 use jqoiview::Pix;
 use jqoiview::hash;
 
-use sdl2::rect::Point;
 use sdl2::surface::Surface;
 use sdl2::keyboard::Keycode;
 use sdl2::event::Event;
@@ -48,13 +47,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     };
 
     let mut f = File::open(filepath)?;
-
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
-
     let Header { width, height, .. } = Header::from_file(&mut f)?;
     let mut pixels = decode_qoi_file(&mut f)?;
 
+    let sdl_context = sdl2::init()?;
+    let video_subsystem = sdl_context.video()?;
     let surface = Surface::from_data(
         &mut pixels,
         width,
