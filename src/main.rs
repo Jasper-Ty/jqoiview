@@ -1,21 +1,17 @@
-use std::{
-    env,
-    error,
-    fs::File,
-    io::{
-        BufReader,
-        Read,
-        Seek,
-        SeekFrom,
-    }
+use std::env;
+use std::error;
+use std::fs::File;
+use std::io::{
+    BufReader,
+    Read,
+    Seek,
+    SeekFrom,
 };
 
-use jqoiview::{
-    Header,
-    Chunks,
-    Pix,
-    hash,
-};
+use jqoiview::Header;
+use jqoiview::Chunks;
+use jqoiview::Pix;
+use jqoiview::hash;
 
 use sdl2::surface::Surface;
 use sdl2::keyboard::Keycode;
@@ -29,7 +25,8 @@ use sdl2::rect::Rect;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn main() -> Result<(), Box<dyn error::Error>>{
+fn main() -> Result<(), Box<dyn error::Error>> {
+
     let args: Vec<String> = env::args().collect();
     let filepath = match args
         .get(1)
@@ -99,20 +96,16 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     let texture_creator = canvas.texture_creator();
     let texture = surface.as_texture(&texture_creator)?;
 
-    draw_checkered_background(&mut canvas)?;
 
-    canvas.copy(
-        &texture,
-        None,
-        None,
-    )?;
-    canvas.present();
-
+    let mut view_rect = Rect::new(0, 0, width as u32, height as u32);
     let mut zoom_level:i32 = 0;
     let mut dx: i32 = 0;
     let mut dy: i32 = 0;
     let mut view_x: i32 = 0;
     let mut view_y: i32 = 0;
+
+    draw(&mut canvas, &texture, view_rect)?;
+
     let mut event_pump = sdl_context.event_pump()?;
     for event in event_pump.wait_iter() {
         match event {
@@ -158,18 +151,14 @@ fn main() -> Result<(), Box<dyn error::Error>>{
             }
             _ => {}
         };
-        draw_checkered_background(&mut canvas)?;
-        canvas.copy(
-            &texture,
-            None,
-            Rect::new(dx+view_x, dy+view_y, width as u32, height as u32),
-        )?;
-        canvas.present();
+        let rect = Rect::new(dx+view_x, dy+view_y, width as u32, height as u32);
+        draw(&mut canvas, &texture, rect)?;
     }
     Ok(())
 }
 
 use sdl2::render::Canvas;
+use sdl2::render::Texture;
 use sdl2::video::Window;
 
 fn draw_checkered_background(
@@ -191,5 +180,23 @@ fn draw_checkered_background(
             canvas.fill_rect(Rect::new(x, y, 24, 24))?;
         }
     }
+    Ok(())
+}
+
+fn draw<R>(
+    canvas: &mut Canvas<Window>,
+    texture: &Texture,
+    rect: R,
+) -> Result<(), String> 
+where
+    R: Into<Option<Rect>>
+{
+    draw_checkered_background(canvas)?;
+    canvas.copy(
+        texture,
+        None,
+        rect,
+    )?;
+    canvas.present();
     Ok(())
 }
