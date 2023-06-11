@@ -64,7 +64,6 @@ const QOI_OP_DIFF: u8   = 0b01000000;
 const QOI_OP_LUMA: u8   = 0b10000000;
 const QOI_OP_RUN: u8    = 0b11000000;
 
-#[derive(Clone, Copy)]
 pub enum Chunk {
     RGB(u8, u8, u8),
     RGBA(u8, u8, u8, u8),
@@ -109,7 +108,6 @@ impl Chunk {
         }
     }
 }
-
 
 use Chunk::*;
 
