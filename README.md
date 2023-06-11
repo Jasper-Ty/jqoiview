@@ -12,7 +12,9 @@ jqoiview <file>
 
 To quit, press `Q` or `Escape`.
 
-Use the arrow keys to scroll up/down/left/right.
+Use the arrow keys or `hjkl` to scroll up/down/left/right.
+
+To zoom in and out, use `i` and `o`.
 
 ## Installation
 
