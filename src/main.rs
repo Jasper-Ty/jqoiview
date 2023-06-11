@@ -70,7 +70,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let texture_creator = canvas.texture_creator();
     let texture = surface.as_texture(&texture_creator)?;
 
-    let mut zoom_level: u32 = 0;
+    let mut zoom_level: u32 = 1;
+    let mut irene = width;
+    let mut seulgi = height;
+
+    let mut view_x = width as i32/2;
+    let mut view_y = height as i32/2;
 
     let mut img_rect = Rect::new(0, 0, width as u32, height as u32);
 
@@ -90,27 +95,38 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 },
                 Some(Keycode::Up) 
                 | Some(Keycode::K) => {
-                    img_rect.set_y(img_rect.y() + 16);
+                    view_y -= 16;
                 },
                 Some(Keycode::Down) 
                 | Some(Keycode::J) => {
-                    img_rect.set_y(img_rect.y() - 16);
+                    view_y += 16;
                 },
                 Some(Keycode::Left) 
                 | Some(Keycode::H) => {
-                    img_rect.set_x(img_rect.x() + 16);
+                    view_x -= 16;
                 },
                 Some(Keycode::Right) 
                 | Some(Keycode::L) => {
-                    img_rect.set_x(img_rect.x() - 16);
+                    view_x += 16;
                 },
                 Some(Keycode::Plus) 
                 | Some(Keycode::I) => {
+                    let w = img_rect.width();
+                    irene = (zoom_level+1) * (irene/zoom_level) + (irene % zoom_level);
+                    seulgi = (zoom_level+1) * (seulgi/zoom_level) + (seulgi% zoom_level);
+                    view_x = (zoom_level as i32+1) * (view_x/zoom_level as i32) + (view_x % zoom_level as i32);
+                    view_y = (zoom_level as i32+1) * (view_y/zoom_level as i32) + (view_y % zoom_level as i32);
                     zoom_level += 1;
                 },
                 Some(Keycode::Minus) 
                 | Some(Keycode::O) => {
-                    zoom_level -= (zoom_level > 0) as u32;
+                    if zoom_level > 1 {
+                        irene = (zoom_level-1) * (irene/zoom_level) + (irene % zoom_level);
+                        seulgi = (zoom_level-1) * (seulgi/zoom_level) + (seulgi% zoom_level);
+                        view_x = (zoom_level as i32-1) * (view_x/zoom_level as i32) + (view_x % zoom_level as i32);
+                        view_y = (zoom_level as i32-1) * (view_y/zoom_level as i32) + (view_y % zoom_level as i32);
+                        zoom_level -= 1;
+                    }
                 },
                 _ => {}
             },
@@ -122,6 +138,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             _ => {}
         };
         println!("zoom: {}", zoom_level);
+        println!("irene: {}", irene);
+
+        img_rect.set_x(-((view_x - (width as i32/2)) as i32));
+        img_rect.set_y(-((view_y - (height as i32/2)) as i32));
+        img_rect.set_width(irene);
+        img_rect.set_height(seulgi);
         draw(&mut canvas, &texture, img_rect)?;
     }
     Ok(())
@@ -152,6 +174,7 @@ fn draw_checkered_background(
     }
     Ok(())
 }
+
 
 fn decode_qoi_file(f: &mut File) -> std::io::Result<Vec<u8>> {
     let Header { width, height, .. } = Header::from_file(f)?;
