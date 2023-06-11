@@ -108,6 +108,11 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     )?;
     canvas.present();
 
+    let mut zoom_level:i32 = 0;
+    let mut dx: i32 = 0;
+    let mut dy: i32 = 0;
+    let mut view_x: i32 = 0;
+    let mut view_y: i32 = 0;
     let mut event_pump = sdl_context.event_pump()?;
     for event in event_pump.wait_iter() {
         match event {
@@ -120,22 +125,46 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                 keycode: Some(Keycode::Q),
                 ..
             } => break,
+            Event::KeyDown {
+                keycode: Some(Keycode::Up),
+                ..
+            } => { 
+                view_y += 16;
+            },
+            Event::KeyDown {
+                keycode: Some(Keycode::Down),
+                ..
+            } => { 
+                view_y -= 16;
+            },
+            Event::KeyDown {
+                keycode: Some(Keycode::Left),
+                ..
+            } => { 
+                view_x += 16;
+            },
+            Event::KeyDown {
+                keycode: Some(Keycode::Right),
+                ..
+            } => { 
+                view_x -= 16;
+            },
             Event::Window { 
                 win_event: WindowEvent::Resized(w, h),
                 ..
             } => { 
-                let dx = (w as i32 - width as i32) / 2;
-                let dy = (h as i32 - height as i32) / 2;
-                draw_checkered_background(&mut canvas)?;
-                canvas.copy(
-                    &texture,
-                    None,
-                    Rect::new(dx, dy, width as u32, height as u32),
-                )?;
-                canvas.present();
+                dx = (w as i32 - width as i32) / 2;
+                dy = (h as i32 - height as i32) / 2;
             }
             _ => {}
-        }
+        };
+        draw_checkered_background(&mut canvas)?;
+        canvas.copy(
+            &texture,
+            None,
+            Rect::new(dx+view_x, dy+view_y, width as u32, height as u32),
+        )?;
+        canvas.present();
     }
     Ok(())
 }
