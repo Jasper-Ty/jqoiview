@@ -17,13 +17,13 @@ use jqoiview::{
     hash,
 };
 
-use sdl2::{
-    keyboard::Keycode,
-    pixels::{ PixelFormatEnum::RGBA8888 },
-    surface::Surface,
-};
+use sdl2::surface::Surface;
+use sdl2::keyboard::Keycode;
 use sdl2::event::Event;
-use sdl2::pixels::Color;
+use sdl2::pixels::{
+    Color,
+    PixelFormatEnum,
+};
 use sdl2::rect::Rect;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         width,
         height,
         width*4,
-        RGBA8888,
+        PixelFormatEnum::RGBA8888,
     )?;
 
     let window = video_subsystem
