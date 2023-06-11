@@ -92,15 +92,14 @@ fn main() -> Result<(), Box<dyn error::Error>>{
         .window("jqoiview", width, height)
         .resizable()
         .position_centered()
+        .opengl()
         .build()?;
 
     let mut canvas = window.into_canvas().build()?;
     let texture_creator = canvas.texture_creator();
     let texture = surface.as_texture(&texture_creator)?;
 
-    let black = Color::RGB(0, 0, 0);
-
-    draw_checkered_background(&mut canvas);
+    draw_checkered_background(&mut canvas)?;
 
     canvas.copy(
         &texture,
@@ -127,7 +126,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
             } => { 
                 let dx = (w as i32 - width as i32) / 2;
                 let dy = (h as i32 - height as i32) / 2;
-                draw_checkered_background(&mut canvas);
+                draw_checkered_background(&mut canvas)?;
                 canvas.copy(
                     &texture,
                     None,
