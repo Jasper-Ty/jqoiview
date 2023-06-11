@@ -1,7 +1,6 @@
 use std::env;
 use std::error;
 use std::fs::File;
-use std::time::Duration;
 use std::io::{
     BufReader,
     Read,
