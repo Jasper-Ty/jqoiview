@@ -79,72 +79,46 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let mut event_pump = sdl_context.event_pump()?;
     for event in event_pump.wait_iter() {
         match event {
-            Event::Quit { .. }
-            | Event::KeyDown {
-                keycode: Some(Keycode::Escape),
+            Event::Quit { .. } => break,
+            Event::KeyDown { 
+                keycode: code,
                 ..
-            } 
-            | Event::KeyDown {
-                keycode: Some(Keycode::Q),
-                ..
-            } => break,
-            Event::KeyDown {
-                keycode: Some(Keycode::Up),
-                ..
-            } 
-            | Event::KeyDown {
-                keycode: Some(Keycode::K),
-                ..
-            } => { 
-                img_rect.set_y(img_rect.y()+16);
-            },
-            Event::KeyDown {
-                keycode: Some(Keycode::Down),
-                ..
-            } 
-            | Event::KeyDown {
-                keycode: Some(Keycode::J),
-                ..
-            } => { 
-                img_rect.set_y(img_rect.y()-16);
-            },
-            Event::KeyDown {
-                keycode: Some(Keycode::Left),
-                ..
-            }
-            | Event::KeyDown {
-                keycode: Some(Keycode::H),
-                ..
-            } => { 
-                img_rect.set_x(img_rect.x()+16);
-            },
-            Event::KeyDown {
-                keycode: Some(Keycode::Right),
-                ..
-            }
-            | Event::KeyDown {
-                keycode: Some(Keycode::L),
-                ..
-            } => { 
-                img_rect.set_x(img_rect.x()-16);
-            },
-            Event::KeyDown {
-                keycode: Some(Keycode::I),
-                ..
-            } => { 
-                zoom_level += 1;
-            },
-            Event::KeyDown {
-                keycode: Some(Keycode::O),
-                ..
-            } => { 
-                zoom_level = if zoom_level > 0 { zoom_level - 1 } else { zoom_level };
+            } => match code {
+                Some(Keycode::Escape) 
+                | Some(Keycode::Q) => {
+                    break
+                },
+                Some(Keycode::Up) 
+                | Some(Keycode::K) => {
+                    img_rect.set_y(img_rect.y() + 16);
+                },
+                Some(Keycode::Down) 
+                | Some(Keycode::J) => {
+                    img_rect.set_y(img_rect.y() - 16);
+                },
+                Some(Keycode::Left) 
+                | Some(Keycode::H) => {
+                    img_rect.set_x(img_rect.x() + 16);
+                },
+                Some(Keycode::Right) 
+                | Some(Keycode::L) => {
+                    img_rect.set_x(img_rect.x() - 16);
+                },
+                Some(Keycode::Plus) 
+                | Some(Keycode::I) => {
+                    zoom_level += 1;
+                },
+                Some(Keycode::Minus) 
+                | Some(Keycode::O) => {
+                    zoom_level -= (zoom_level > 0) as u32;
+                },
+                _ => {}
             },
             Event::Window { 
                 win_event: WindowEvent::Resized(_, _),
                 ..
             } => { 
-            }
+            },
             _ => {}
         };
         println!("zoom: {}", zoom_level);
