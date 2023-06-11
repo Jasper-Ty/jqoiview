@@ -137,6 +137,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             _ => {}
         };
 
+        let window = canvas.window_mut();
+        let title = format!("jqoiview - {}x zoom", zoom_level);
+
+        window.set_title(&title)?;
         img_rect.set_x(-((view_x - (width as i32/2)) as i32));
         img_rect.set_y(-((view_y - (height as i32/2)) as i32));
         img_rect.set_width(irene);
