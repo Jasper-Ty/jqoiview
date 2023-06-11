@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let window = video_subsystem
         .window("jqoiview", width, height)
-        .resizable()
+//        .resizable()
         .position_centered()
         .opengl()
         .build()?;
