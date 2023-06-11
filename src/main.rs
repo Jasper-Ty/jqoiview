@@ -13,6 +13,7 @@ use jqoiview::Chunks;
 use jqoiview::Pix;
 use jqoiview::hash;
 
+use sdl2::rect::Point;
 use sdl2::surface::Surface;
 use sdl2::keyboard::Keycode;
 use sdl2::event::Event;
@@ -96,16 +97,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let texture_creator = canvas.texture_creator();
     let texture = surface.as_texture(&texture_creator)?;
 
+    let mut zoom_level: u32 = 0;
 
-    let mut view_width = width as u32;
-    let mut view_height = height as u32;
-    let mut dx: i32 = 0;
-    let mut dy: i32 = 0;
-    let mut view_x: i32 = 0;
-    let mut view_y: i32 = 0;
-    let mut view_rect = Rect::new(0, 0, view_width, view_height);
+    let mut img_rect = Rect::new(0, 0, width as u32, height as u32);
 
-    draw(&mut canvas, &texture, view_rect)?;
+    draw(&mut canvas, &texture, img_rect);
 
     let mut event_pump = sdl_context.event_pump()?;
     for event in event_pump.wait_iter() {
@@ -127,7 +123,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 keycode: Some(Keycode::K),
                 ..
             } => { 
-                view_y += 16;
+                img_rect.set_y(img_rect.y()+16);
             },
             Event::KeyDown {
                 keycode: Some(Keycode::Down),
@@ -137,7 +133,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 keycode: Some(Keycode::J),
                 ..
             } => { 
-                view_y -= 16;
+                img_rect.set_y(img_rect.y()-16);
             },
             Event::KeyDown {
                 keycode: Some(Keycode::Left),
@@ -147,7 +143,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 keycode: Some(Keycode::H),
                 ..
             } => { 
-                view_x += 16;
+                img_rect.set_x(img_rect.x()+16);
             },
             Event::KeyDown {
                 keycode: Some(Keycode::Right),
@@ -157,36 +153,29 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 keycode: Some(Keycode::L),
                 ..
             } => { 
-                view_x -= 16;
+                img_rect.set_x(img_rect.x()-16);
             },
             Event::KeyDown {
                 keycode: Some(Keycode::I),
                 ..
             } => { 
-                view_width = ((view_width as f64) * 1.2) as u32;
-                view_height = ((view_height as f64) * 1.2) as u32;
+                zoom_level += 1;
             },
             Event::KeyDown {
                 keycode: Some(Keycode::O),
                 ..
             } => { 
-                view_width = ((view_width as f64) / 1.2) as u32;
-                view_height = ((view_height as f64) / 1.2) as u32;
+                zoom_level = if zoom_level > 0 { zoom_level - 1 } else { zoom_level };
             },
             Event::Window { 
                 win_event: WindowEvent::Resized(w, h),
                 ..
             } => { 
-                dx = (w as i32 - width as i32) / 2;
-                dy = (h as i32 - height as i32) / 2;
             }
             _ => {}
         };
-        view_rect.set_x(dx + view_x);
-        view_rect.set_y(dy + view_y);
-        view_rect.set_width(view_width);
-        view_rect.set_height(view_height);
-        draw(&mut canvas, &texture, view_rect)?;
+        println!("zoom: {}", zoom_level);
+        draw(&mut canvas, &texture, img_rect);
     }
     Ok(())
 }
@@ -226,6 +215,10 @@ where
     R: Into<Option<Rect>>
 {
     draw_checkered_background(canvas)?;
+
+    let (width, height) = canvas.window().size();
+    let center = (width/2, height/2);
+
     canvas.copy(
         texture,
         None,
@@ -233,4 +226,22 @@ where
     )?;
     canvas.present();
     Ok(())
+}
+
+fn zoom_coefficient(zoom_level: i32) -> f64 {
+    match zoom_level {
+        0 => 1.0,
+        p @ 1_i32..=i32::MAX => p as f64 + 1.0,
+        n @ i32::MIN..=-1_i32 => 1.0/(-n as f64 + 1.0),
+    }
+}
+
+fn zoom_center(img_center: Point, view_center: Point, coeff: f64) -> Point {
+    let (ic_x, ic_y) = img_center.into();
+    let (vc_x, vc_y) = view_center.into();
+
+    let dx = (((ic_x-vc_x) as f64) * coeff) as i32;
+    let dy = (((ic_y-vc_y) as f64) * coeff) as i32;
+
+    Point::new(ic_x + dx, ic_y + dy)
 }
