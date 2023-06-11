@@ -48,35 +48,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     };
 
     let mut f = File::open(filepath)?;
-    let Header { width, height, .. } = Header::from_file(&mut f)?;
-    let metadata = f.metadata()?;
-
-    let chunks_len = metadata.len() - 22;
-    f.seek(SeekFrom::Start(Header::SIZE))?;
-    let chunks = BufReader::new(f)
-        .take(chunks_len)
-        .bytes()
-        .map(|b| b.unwrap())
-        .chunks();
-
-    let mut curr: Pix = (0, 0, 0, 255);
-    let mut run;
-    let mut index = [(0, 0, 0, 0); 64];
-    let mut pixels: Vec<u8> = Vec::with_capacity((4*width*height) as usize);
-
-    for chunk in chunks {
-        (curr, run) = chunk.parse(curr, &index);
-        index[hash(curr)] = curr;
-        for _ in 0..=run {
-            pixels.push(curr.3);
-            pixels.push(curr.2);
-            pixels.push(curr.1);
-            pixels.push(curr.0);
-        }
-    }
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
+
+    let Header { width, height, .. } = Header::from_file(&mut f)?;
+    let mut pixels = decode_qoi_file(&mut f)?;
 
     let surface = Surface::from_data(
         &mut pixels,
@@ -206,6 +183,37 @@ fn draw_checkered_background(
     Ok(())
 }
 
+fn decode_qoi_file(f: &mut File) -> std::io::Result<Vec<u8>> {
+    let Header { width, height, .. } = Header::from_file(f)?;
+    let metadata = f.metadata()?;
+
+    let chunks_len = metadata.len() - 22;
+    f.seek(SeekFrom::Start(Header::SIZE))?;
+    let chunks = BufReader::new(f)
+        .take(chunks_len)
+        .bytes()
+        .map(|b| b.unwrap())
+        .chunks();
+
+    let mut curr: Pix = (0, 0, 0, 255);
+    let mut run;
+    let mut index = [(0, 0, 0, 0); 64];
+    let mut pixels: Vec<u8> = Vec::with_capacity((4*width*height) as usize);
+
+    for chunk in chunks {
+        (curr, run) = chunk.parse(curr, &index);
+        index[hash(curr)] = curr;
+        for _ in 0..=run {
+            pixels.push(curr.3);
+            pixels.push(curr.2);
+            pixels.push(curr.1);
+            pixels.push(curr.0);
+        }
+    }
+
+    Ok(pixels)
+}
+
 fn draw<R>(
     canvas: &mut Canvas<Window>,
     texture: &Texture,
@@ -226,22 +234,4 @@ where
     )?;
     canvas.present();
     Ok(())
-}
-
-fn zoom_coefficient(zoom_level: i32) -> f64 {
-    match zoom_level {
-        0 => 1.0,
-        p @ 1_i32..=i32::MAX => p as f64 + 1.0,
-        n @ i32::MIN..=-1_i32 => 1.0/(-n as f64 + 1.0),
-    }
-}
-
-fn zoom_center(img_center: Point, view_center: Point, coeff: f64) -> Point {
-    let (ic_x, ic_y) = img_center.into();
-    let (vc_x, vc_y) = view_center.into();
-
-    let dx = (((ic_x-vc_x) as f64) * coeff) as i32;
-    let dy = (((ic_y-vc_y) as f64) * coeff) as i32;
-
-    Point::new(ic_x + dx, ic_y + dy)
 }
