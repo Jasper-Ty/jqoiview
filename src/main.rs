@@ -18,11 +18,13 @@ use jqoiview::{
 };
 
 use sdl2::{
-    event::Event,
     keyboard::Keycode,
     pixels::{ PixelFormatEnum::RGBA8888 },
     surface::Surface,
 };
+use sdl2::event::Event;
+use sdl2::pixels::Color;
+use sdl2::rect::Rect;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -94,6 +96,20 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     let texture_creator = canvas.texture_creator();
     let texture = surface.as_texture(&texture_creator)?;
 
+    let white = Color::RGB(255, 255, 255);
+    let gray = Color::RGB(223, 223, 223);
+
+    for i in 0..width / 24 {
+        for j in 0..height / 24 {
+            let (x, y) = (i as i32 * 24, j as i32 * 24);
+            if (i+j) % 2 == 0 {
+                canvas.set_draw_color(white);
+            } else {
+                canvas.set_draw_color(gray);
+            }
+            canvas.fill_rect(Rect::new(x, y, 24, 24))?;
+        }
+    }
     canvas.copy(
         &texture,
         None,
