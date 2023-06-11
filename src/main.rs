@@ -20,6 +20,7 @@ use jqoiview::{
 use sdl2::surface::Surface;
 use sdl2::keyboard::Keycode;
 use sdl2::event::Event;
+use sdl2::event::WindowEvent;
 use sdl2::pixels::{
     Color,
     PixelFormatEnum,
@@ -89,6 +90,7 @@ fn main() -> Result<(), Box<dyn error::Error>>{
 
     let window = video_subsystem
         .window("jqoiview", width, height)
+        .resizable()
         .position_centered()
         .build()?;
 
@@ -96,20 +98,10 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     let texture_creator = canvas.texture_creator();
     let texture = surface.as_texture(&texture_creator)?;
 
-    let white = Color::RGB(255, 255, 255);
-    let gray = Color::RGB(223, 223, 223);
+    let black = Color::RGB(0, 0, 0);
 
-    for i in 0..=width / 24 {
-        for j in 0..=height / 24 {
-            let (x, y) = (i as i32 * 24, j as i32 * 24);
-            if (i+j) % 2 == 0 {
-                canvas.set_draw_color(white);
-            } else {
-                canvas.set_draw_color(gray);
-            }
-            canvas.fill_rect(Rect::new(x, y, 24, 24))?;
-        }
-    }
+    draw_checkered_background(&mut canvas);
+
     canvas.copy(
         &texture,
         None,
@@ -129,7 +121,46 @@ fn main() -> Result<(), Box<dyn error::Error>>{
                 keycode: Some(Keycode::Q),
                 ..
             } => break,
+            Event::Window { 
+                win_event: WindowEvent::Resized(w, h),
+                ..
+            } => { 
+                let dx = (w as i32 - width as i32) / 2;
+                let dy = (h as i32 - height as i32) / 2;
+                draw_checkered_background(&mut canvas);
+                canvas.copy(
+                    &texture,
+                    None,
+                    Rect::new(dx, dy, width as u32, height as u32),
+                )?;
+                canvas.present();
+            }
             _ => {}
+        }
+    }
+    Ok(())
+}
+
+use sdl2::render::Canvas;
+use sdl2::video::Window;
+
+fn draw_checkered_background(
+    canvas: &mut Canvas<Window>
+) -> Result<(), String> {
+    let (width, height) = canvas.window().size();
+
+    let white = Color::RGB(255, 255, 255);
+    let gray = Color::RGB(223, 223, 223);
+
+    for i in 0..=width / 24 {
+        for j in 0..=height / 24 {
+            let (x, y) = (i as i32 * 24, j as i32 * 24);
+            if (i+j) % 2 == 0 {
+                canvas.set_draw_color(white);
+            } else {
+                canvas.set_draw_color(gray);
+            }
+            canvas.fill_rect(Rect::new(x, y, 24, 24))?;
         }
     }
     Ok(())
