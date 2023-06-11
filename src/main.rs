@@ -99,8 +99,8 @@ fn main() -> Result<(), Box<dyn error::Error>>{
     let white = Color::RGB(255, 255, 255);
     let gray = Color::RGB(223, 223, 223);
 
-    for i in 0..width / 24 {
-        for j in 0..height / 24 {
+    for i in 0..=width / 24 {
+        for j in 0..=height / 24 {
             let (x, y) = (i as i32 * 24, j as i32 * 24);
             if (i+j) % 2 == 0 {
                 canvas.set_draw_color(white);
