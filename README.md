@@ -14,7 +14,7 @@ To quit, press `Q` or `Escape`.
 
 Use the arrow keys or `hjkl` (vim-style) to scroll up/down/left/right.
 
-To zoom in and out, use `+`/`i` and '-'/`o` respectively.
+To zoom in and out, use `+`/`i` and `-`/`o` respectively.
 
 ## Installation
 
