@@ -18,6 +18,8 @@ To zoom in and out, use `+`/`i` and '-'/`o` respectively.
 
 ## Installation
 
+Requires SDL2
+
 ```sh 
 cargo install jqoiview
 ```
