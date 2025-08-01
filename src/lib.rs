@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::fmt;
+
 const QOI_OP_RGB: u8    = 0b11111110;
 const QOI_OP_RGBA: u8   = 0b11111111;
 const QOI_OP_INDEX: u8  = 0b00000000;
@@ -26,7 +29,7 @@ impl QOIDecode {
     /// Decode byte slice as a QOI image. 
     ///
     /// See [the detailed spec](https://qoiformat.org/qoi-specification.pdf). 
-    pub fn from_bytes(mut bytes: &[u8]) -> Result<QOIDecode, String> {
+    pub fn from_bytes(mut bytes: &[u8]) -> Result<QOIDecode, QOIDecodeError> {
         let (
             width,
             height,
@@ -49,7 +52,7 @@ impl QOIDecode {
                     *colorspace,
                 )
             },
-            _ => { return Err("Invalid header".to_string()) }
+            _ => return Err(QOIDecodeError::InvalidHeader)
         };
         
         let mut curr = Pixel { r: 0, g: 0, b: 0, a: 255 };
@@ -58,6 +61,7 @@ impl QOIDecode {
 
         let mut pixels: Vec<Pixel> = Vec::with_capacity((width * height) as usize);
 
+        // Read chunks one by one using byte slice matching
         loop {
             run = 0;
             match bytes {
@@ -68,7 +72,7 @@ impl QOIDecode {
                 // │ 0 .. 0  │ 0 .. 0 │ 0 .. 0  │ 0 0 0 0 0 0 0 1 │
                 // └─────────┴────────┴─────────┴─────────────────┘
                 // All chunks have been processed.
-                [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 1u8] => break Ok(
+                [0, 0, 0, 0, 0, 0, 0, 1] => break Ok(
                     QOIDecode{
                         width,
                         height,
@@ -113,7 +117,7 @@ impl QOIDecode {
                 // ├─────┬─────────────┤
                 // │ 0 0 │    index    │
                 // └─────┴─────────────┘
-                //            0..64
+                //            0..63
                 [b0, rest @ ..] if b0 & 0b11000000 == QOI_OP_INDEX => {
                     curr = array[*b0 as usize];
                     bytes = rest;
@@ -135,14 +139,13 @@ impl QOIDecode {
                     bytes = rest;
                 },
 
-                // ┌─ QOI_OP_LUMA ─────┐
-                // │      Byte[0]      │
-                // │ 7 6   5 4 3 2 1 0 │
-                // ├─────┬─────────────┤
-                // │ 1 0 │     dg      │
-                // └─────┴─────────────┘
-                //          -32..31
-                // Index into pixel array
+                // ┌─ QOI_OP_LUMA ─────┬───────────────────┐
+                // │      Byte[0]      │       Byte[1]     │
+                // │ 7 6   5 4 3 2 1 0 │ 7 6 5 4   3 2 1 0 │
+                // ├─────┬─────────────┼─────────┬─────────┤
+                // │ 1 0 │     dg      │ dr - dg │ db - dg │ 
+                // └─────┴─────────────┴─────────┴─────────┘
+                //          -32..31      -8..7     -8..7
                 [b0, b1, rest @ ..] if b0 & 0b11000000 == QOI_OP_LUMA => {
                     let (dg, drdg, dbdg) = (b0 & 0b00111111, b1 >> 4 & 0b00001111, b1 & 0b00001111);
                     curr.r = curr.r.wrapping_add(drdg).wrapping_add(dg).wrapping_sub(40);
@@ -157,18 +160,35 @@ impl QOIDecode {
                 // ├─────┬─────────────┤
                 // │ 1 1 │     run     │
                 // └─────┴─────────────┘
-                // Index into pixel array
+                //            0..63
                 [b0, rest @ ..] if b0 & 0b11000000 == QOI_OP_RUN => {
                     run = b0 & 0b00111111;
                     bytes = rest;
                 },
-                _ => { return Err("Invalid chunk".to_string()) }
+                _ => break Err(QOIDecodeError::InvalidChunks)
             }
-            let hash = (curr.r as usize * 3) + (curr.g as usize * 5) + (curr.b as usize * 7) + (curr.a as usize * 11);
-            array[hash % 64] = curr;
+            let pixel_hash = (curr.r as usize * 3) + (curr.g as usize * 5) + (curr.b as usize * 7) + (curr.a as usize * 11);
+            array[pixel_hash % 64] = curr;
             for _ in 0..=run {
                 pixels.push(curr);
             }
         }
     }
 }
+
+#[derive(Debug)]
+pub enum QOIDecodeError {
+    InvalidHeader,
+    InvalidChunks
+}
+
+impl fmt::Display for QOIDecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidHeader => write!(f, "Error reading QOI header"),
+            Self::InvalidChunks => write!(f, "Error reading QOI chunks"),
+        }
+    }
+}
+
+impl Error for QOIDecodeError {}
