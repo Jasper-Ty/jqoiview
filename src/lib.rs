@@ -1,62 +1,3 @@
-use std::{
-    fs::File,
-    io::{
-        Read,
-        Result,
-        Seek,
-        SeekFrom,
-    }
-};
-
-pub struct Header {
-    pub width: u32,
-    pub height: u32,
-    pub channels: u8,
-    pub colorspace: u8,
-}
-impl Header {
-    pub const SIZE: u64 = 14;
-    pub fn from_file(f: &mut File) -> Result<Self> {
-        f.seek(SeekFrom::Start(0))?;
-        let mut buf: [u8; 4] = [0u8; 4];
-        f.read(&mut buf)?;
-        assert_eq!(buf, [113u8, 111u8, 105u8, 102u8]);
-
-        f.read(&mut buf)?;
-        let width = u32::from_be_bytes(buf);
-
-        f.read(&mut buf)?;
-        let height = u32::from_be_bytes(buf);
-
-        f.read(&mut buf)?;
-        let channels = buf[0];
-        let colorspace = buf[1];
-
-        let mut buf: [u8; 8] = [0u8; 8];
-        f.seek(SeekFrom::End(-8))?;
-        f.read(&mut buf)?;
-        assert_eq!(buf, [0, 0, 0, 0, 0, 0, 0, 1]);
-
-        Ok(Self {
-            width,
-            height,
-            channels,
-            colorspace,
-        })
-    }
-}
-
-pub type Pix = (u8, u8, u8, u8);
-pub fn hash((r, g, b, a): (u8, u8, u8, u8)) -> usize {
-    let (r, g, b, a) = (
-        (r as usize) * 3,
-        (g as usize) * 5,
-        (b as usize) * 7,
-        (a as usize) * 11,
-    );
-    (r + g + b + a) % 64
-} 
-
 const QOI_OP_RGB: u8    = 0b11111110;
 const QOI_OP_RGBA: u8   = 0b11111111;
 const QOI_OP_INDEX: u8  = 0b00000000;
@@ -64,103 +5,170 @@ const QOI_OP_DIFF: u8   = 0b01000000;
 const QOI_OP_LUMA: u8   = 0b10000000;
 const QOI_OP_RUN: u8    = 0b11000000;
 
-pub enum Chunk {
-    RGB(u8, u8, u8),
-    RGBA(u8, u8, u8, u8),
-    INDEX(u8),
-    DIFF(u8, u8, u8),
-    LUMA(u8, u8, u8),
-    RUN(u8),
-}
-impl Chunk {
-    pub fn parse(&self, curr: Pix, index: &[Pix]) -> (Pix, u8) {
-        match *self {
-            RGB(r, g, b) => ((r, g, b, curr.3), 0),
-            RGBA(r, g, b, a) => ((r, g, b, a), 0), 
-            INDEX(i) => (index[i as usize], 0),
-            DIFF(dr, dg, db) => ((
-                curr.0
-                    .wrapping_add(dr)
-                    .wrapping_sub(2),
-                curr.1
-                    .wrapping_add(dg)
-                    .wrapping_sub(2),
-                curr.2
-                    .wrapping_add(db)
-                    .wrapping_sub(2),
-                curr.3,
-            ), 0),
-            LUMA(dg, drdg, dbdg) => ((
-                curr.0
-                    .wrapping_add(dg)
-                    .wrapping_sub(40)
-                    .wrapping_add(drdg),
-                curr.1
-                    .wrapping_add(dg)
-                    .wrapping_sub(32),
-                curr.2
-                    .wrapping_add(dg)
-                    .wrapping_sub(40)
-                    .wrapping_add(dbdg),
-                curr.3,
-            ), 0),
-            RUN(len) => (curr, len), 
-        }
-    }
+#[derive(Clone,Copy)]
+#[repr(packed(1))]
+pub struct Pixel {
+    pub r: u8,
+    pub g: u8, 
+    pub b: u8,
+    pub a: u8
 }
 
-use Chunk::*;
+pub struct QOIDecode {
+    pub width: u32,
+    pub height: u32,
+    pub channels: u8,
+    pub colorspace: u8,
+    pub pixels: Vec<Pixel>
+}
 
-pub struct ChunkIter<I: Iterator<Item=u8>> (I);
+impl QOIDecode {
+    /// Decode byte slice as a QOI image. 
+    ///
+    /// See [the detailed spec](https://qoiformat.org/qoi-specification.pdf). 
+    pub fn from_bytes(mut bytes: &[u8]) -> Result<QOIDecode, String> {
+        let (
+            width,
+            height,
+            channels,
+            colorspace
+        ) = match bytes {
+            [
+                113u8, 111u8, 105u8, 102u8,
+                w0, w1, w2, w3,
+                h0, h1, h2, h3,
+                channels,
+                colorspace,
+                rest @ ..
+            ] => { 
+                bytes = rest;
+                (
+                    u32::from_be_bytes([*w0, *w1, *w2, *w3]),
+                    u32::from_be_bytes([*h0, *h1, *h2, *h3]),
+                    *channels,
+                    *colorspace,
+                )
+            },
+            _ => { return Err("Invalid header".to_string()) }
+        };
+        
+        let mut curr = Pixel { r: 0, g: 0, b: 0, a: 255 };
+        let mut array = [Pixel { r:0, g:0, b:0, a: 0 } ; 64];
+        let mut run: u8;
 
-impl<I> Iterator for ChunkIter<I> 
-where
-    I: Iterator<Item = u8>
-{
-    type Item = Chunk;
+        let mut pixels: Vec<Pixel> = Vec::with_capacity((width * height) as usize);
 
-    fn next(&mut self) -> Option<Chunk> {
-        let Self(iter) = self;
-        let b1 = iter.next()?;
-        match b1 {
-            QOI_OP_RGB => Some(RGB(
-                iter.next()?, 
-                iter.next()?, 
-                iter.next()?,
-            )),
-            QOI_OP_RGBA => Some(RGBA(
-                iter.next()?, 
-                iter.next()?, 
-                iter.next()?, 
-                iter.next()?,
-            )),
-            b1 => match b1 & 0b11000000 {
-                QOI_OP_INDEX => Some(INDEX(b1 & 0b00111111)),
-                QOI_OP_DIFF => Some(DIFF(b1 >> 4 & 3, b1 >> 2 & 3, b1 & 3)),
-                QOI_OP_LUMA => {
-                    let b2 = iter.next()?;
-                    Some(LUMA(
-                        b1 & 0b00111111,
-                        (b2 & 0b11110000) >> 4,
-                        b2 & 0b00001111, 
-                    ))
+        loop {
+            run = 0;
+            match bytes {
+                // ┌─ END MARKER ─────┬─────────┬─────────────────┐
+                // │ Byte[0] │   ..   │ Byte[6] │     Byte[7]     │
+                // │ 7 .. 0  │        │ 7 .. 0  │ 7 6 5 4 3 2 1 0 │
+                // ├─────────┼────────┼─────────┼─────────────────┤
+                // │ 0 .. 0  │ 0 .. 0 │ 0 .. 0  │ 0 0 0 0 0 0 0 1 │
+                // └─────────┴────────┴─────────┴─────────────────┘
+                // All chunks have been processed.
+                [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 1u8] => break Ok(
+                    QOIDecode{
+                        width,
+                        height,
+                        channels,
+                        colorspace,
+                        pixels
+                    }
+                ),
+
+                // ┌─ QOI_OP_RGB ────┬─────────┬─────────┬─────────┐
+                // │     Byte[0]     │ Byte[1] │ Byte[2] │ Byte[3] │
+                // │ 7 6 5 4 3 2 1 0 │ 7 .. 0  │ 7 .. 0  │ 7 .. 0  │
+                // ├─────────────────┼─────────┼─────────┼─────────┤
+                // │ 1 1 1 1 1 1 1 0 │   red   │  green  │  blue   │
+                // └─────────────────┴─────────┴─────────┴─────────┘
+                //                     0..255    0..255    0..255
+                [QOI_OP_RGB, r, g, b, rest @ ..] => {
+                    curr.r = *r;
+                    curr.g = *g;
+                    curr.b = *b;
+                    bytes = rest;
                 },
-                QOI_OP_RUN => Some(RUN(b1 & 0b00111111)),
-                _ => None,
+
+                // ┌─ QOI_OP_RGBA ───┬─────────┬─────────┬─────────┬─────────┐
+                // │     Byte[0]     │ Byte[1] │ Byte[2] │ Byte[3] │ Byte[4] │
+                // │ 7 6 5 4 3 2 1 0 │ 7 .. 0  │ 7 .. 0  │ 7 .. 0  │ 7 .. 0  │
+                // ├─────────────────┼─────────┼─────────┼─────────┼─────────┤
+                // │ 1 1 1 1 1 1 1 1 │   red   │  green  │  blue   │  alpha  │
+                // └─────────────────┴─────────┴─────────┴─────────┴─────────┘
+                //                     0..255    0..255    0..255    0..255
+                [QOI_OP_RGBA, r, g, b, a, rest @ ..] => {
+                    curr.r = *r;
+                    curr.g = *g;
+                    curr.b = *b;
+                    curr.a = *a;
+                    bytes = rest;
+                },
+
+                // ┌─ QOI_OP_INDEX ────┐
+                // │      Byte[0]      │
+                // │ 7 6   5 4 3 2 1 0 │
+                // ├─────┬─────────────┤
+                // │ 0 0 │    index    │
+                // └─────┴─────────────┘
+                //            0..64
+                [b0, rest @ ..] if b0 & 0b11000000 == QOI_OP_INDEX => {
+                    curr = array[*b0 as usize];
+                    bytes = rest;
+                },
+
+                // ┌─ QOI_OP_DIFF ────────────┐
+                // │        Byte[0]           │
+                // │ 7 6    5 4    3 2    1 0 │
+                // ├─────┬──────┬──────┬──────┤
+                // │ 0 1 │  dr  │  dg  │  db  │
+                // └─────┴──────┴──────┴──────┘
+                //        -2..1  -2..1  -2..1
+                [b0, rest @ ..] if b0 & 0b11000000  == QOI_OP_DIFF => {
+                    let (dr, dg, db) = (b0 >> 4 & 0b00000011, b0 >> 2 & 0b00000011, b0 & 0b00000011);
+
+                    curr.r = curr.r.wrapping_add(dr).wrapping_sub(2);
+                    curr.g = curr.g.wrapping_add(dg).wrapping_sub(2);
+                    curr.b = curr.b.wrapping_add(db).wrapping_sub(2);
+                    bytes = rest;
+                },
+
+                // ┌─ QOI_OP_LUMA ─────┐
+                // │      Byte[0]      │
+                // │ 7 6   5 4 3 2 1 0 │
+                // ├─────┬─────────────┤
+                // │ 1 0 │     dg      │
+                // └─────┴─────────────┘
+                //          -32..31
+                // Index into pixel array
+                [b0, b1, rest @ ..] if b0 & 0b11000000 == QOI_OP_LUMA => {
+                    let (dg, drdg, dbdg) = (b0 & 0b00111111, b1 >> 4 & 0b00001111, b1 & 0b00001111);
+                    curr.r = curr.r.wrapping_add(drdg).wrapping_add(dg).wrapping_sub(40);
+                    curr.g = curr.g.wrapping_add(dg).wrapping_sub(32);
+                    curr.b = curr.b.wrapping_add(dbdg).wrapping_add(dg).wrapping_sub(40);
+                    bytes = rest;
+                },
+
+                // ┌─ QOI_OP_RUN ──────┐
+                // │      Byte[0]      │
+                // │ 7 6   5 4 3 2 1 0 │
+                // ├─────┬─────────────┤
+                // │ 1 1 │     run     │
+                // └─────┴─────────────┘
+                // Index into pixel array
+                [b0, rest @ ..] if b0 & 0b11000000 == QOI_OP_RUN => {
+                    run = b0 & 0b00111111;
+                    bytes = rest;
+                },
+                _ => { return Err("Invalid chunk".to_string()) }
+            }
+            let hash = (curr.r as usize * 3) + (curr.g as usize * 5) + (curr.b as usize * 7) + (curr.a as usize * 11);
+            array[hash % 64] = curr;
+            for _ in 0..=run {
+                pixels.push(curr);
             }
         }
-    }
-}
-pub trait Chunks {
-    fn chunks(self) -> ChunkIter<Self> 
-    where
-        Self: Sized + Iterator<Item = u8>;
-}
-impl<I> Chunks for I 
-where
-    I: Iterator<Item = u8>
-{
-    fn chunks(self) -> ChunkIter<Self> {
-        ChunkIter(self)
     }
 }

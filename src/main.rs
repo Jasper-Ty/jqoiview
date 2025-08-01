@@ -1,16 +1,8 @@
 use std::env;
 use std::error;
-use std::fs::File;
-use std::io::{
-    BufReader,
-    Read,
-    Seek,
-    SeekFrom,
-};
-use jqoiview::Header;
-use jqoiview::Chunks;
-use jqoiview::Pix;
-use jqoiview::hash;
+use std::fs;
+
+use jqoiview::QOIDecode;
 
 use sdl2::surface::Surface;
 use sdl2::keyboard::Keycode;
@@ -45,14 +37,22 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         Some(arg) => arg,
     };
 
-    let mut f = File::open(filepath)?;
-    let Header { width, height, .. } = Header::from_file(&mut f)?;
-    let mut pixels = decode_qoi_file(&mut f)?;
+    let bytes = fs::read(filepath)?;
+    let QOIDecode {
+        width,
+        height,
+        pixels,
+        ..
+    } = QOIDecode::from_bytes(&bytes[..])?;
+
+    let mut data: Vec<u8> = pixels.into_iter()
+        .flat_map(|pixel| [pixel.a, pixel.b, pixel.g, pixel.r].into_iter())
+        .collect();
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let surface = Surface::from_data(
-        &mut pixels,
+        &mut data,
         width,
         height,
         width*4,
@@ -155,7 +155,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 }
 
 use sdl2::render::Canvas;
-use sdl2::render::Texture;
 use sdl2::video::Window;
 
 fn draw_checkered_background(
@@ -180,37 +179,7 @@ fn draw_checkered_background(
     Ok(())
 }
 
-
-fn decode_qoi_file(f: &mut File) -> std::io::Result<Vec<u8>> {
-    let Header { width, height, .. } = Header::from_file(f)?;
-    let metadata = f.metadata()?;
-
-    let chunks_len = metadata.len() - 22;
-    f.seek(SeekFrom::Start(Header::SIZE))?;
-    let chunks = BufReader::new(f)
-        .take(chunks_len)
-        .bytes()
-        .map(|b| b.unwrap())
-        .chunks();
-
-    let mut curr: Pix = (0, 0, 0, 255);
-    let mut run;
-    let mut index = [(0, 0, 0, 0); 64];
-    let mut pixels: Vec<u8> = Vec::with_capacity((4*width*height) as usize);
-
-    for chunk in chunks {
-        (curr, run) = chunk.parse(curr, &index);
-        index[hash(curr)] = curr;
-        for _ in 0..=run {
-            pixels.push(curr.3);
-            pixels.push(curr.2);
-            pixels.push(curr.1);
-            pixels.push(curr.0);
-        }
-    }
-
-    Ok(pixels)
-}
+use sdl2::render::Texture;
 
 fn draw<R>(
     canvas: &mut Canvas<Window>,
